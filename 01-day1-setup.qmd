@@ -1,0 +1,737 @@
+# Day 1: Why Version Control, Setup, First Repository {#sec-day1}
+
+## Learning objectives
+
+By the end of this day you should be able to:
+
+- Explain what version control is and why it is a
+  research-integrity tool rather than a software-engineering
+  convenience.
+- Install Git on macOS, Windows, or Linux and confirm the
+  installation.
+- Configure your Git identity (name, email, default branch,
+  editor).
+- Describe Git's three areas: the working directory, the
+  staging area (index), and the repository.
+- Create a repository with `git init` and record snapshots
+  with `git add` and `git commit`.
+- Read the state of a repository with `git status` and its
+  history with `git log`.
+- Exclude files from version control with a `.gitignore`
+  file.
+
+## Lecture
+
+### What problem does version control solve?
+
+Every data analyst has lived some version of this folder:
+
+```text
+project/
+  analysis.R
+  analysis_final.R
+  analysis_final_v2.R
+  analysis_FINAL_use_this.R
+  analysis_reviewer_comments.R
+```
+
+The folder is a manual, error-prone version-control system.
+It records some history (there are several versions) but it
+records it badly: the ordering is ambiguous, the reason for
+each version is lost, and nothing connects a given file to
+the results it produced. When a reviewer asks 'which script
+made Table 2?', the honest answer is often 'I am not sure'.
+
+A **version-control system** (VCS) replaces this with a
+disciplined record. It keeps one file, `analysis.R`, and
+stores every historical version of it internally, each
+stamped with an author, a time, and a message explaining
+the change. You can view any past version, compare any two,
+and recover any of them exactly. The folder above collapses
+to:
+
+```text
+project/
+  analysis.R      # plus a complete, queryable history
+```
+
+**Git** is the version-control system this book teaches. It
+is the de facto standard in data science, statistics, and
+software. For a biostatistician the payoff is specific and
+serious: version control is what makes an analysis
+reproducible over time. If a manuscript's results were
+produced by commit `a1b2c3d`, you can return to that exact
+commit years later and rerun it. That is a claim about
+research integrity, not about convenience.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: Git versus GitHub
+
+You may have heard 'Git' and 'GitHub' used
+interchangeably. Are they the same thing?
+
+No. **Git** is the version-control software that runs on
+your own computer and records history locally. It needs no
+internet connection and no account. **GitHub** is a
+commercial website that hosts Git repositories and adds
+collaboration tools (issues, pull requests, code review).
+GitHub is one of several hosts for Git repositories;
+alternatives include GitLab and Bitbucket. Days 1 through 3
+use only Git, entirely offline. GitHub arrives on Day 4.
+:::
+
+### Installing Git
+
+Git is a command-line program. Install it as follows, then
+confirm the installation in a terminal.
+
+**macOS.** The simplest route is to install the Xcode
+command-line tools, which include Git:
+
+```bash
+xcode-select --install
+```
+
+Alternatively, if you use Homebrew, `brew install git`
+gives a newer version.
+
+**Windows.** Download and run the installer from
+<https://git-scm.com/download/win>. This installs both Git
+and **Git Bash**, a Unix-style terminal. Use Git Bash for
+every command in this book; the commands are written for a
+Unix shell and will not all work in the classic Windows
+Command Prompt.
+
+**Linux.** Use the system package manager, for example
+`sudo apt install git` on Debian or Ubuntu, or
+`sudo dnf install git` on Fedora.
+
+Confirm the installation in a terminal:
+
+```bash
+$ git --version
+git version 2.45.2
+```
+
+Any version 2.40 or later is suitable for this book. If the
+command is not found, the installation did not complete;
+revisit the step for your operating system.
+
+### A brief command-line refresher
+
+Git is driven from a terminal. Four commands cover almost
+everything you need this week:
+
+```bash
+pwd                 # print working directory (where am I?)
+ls                  # list files in the current directory
+cd project          # change into the 'project' directory
+cd ..               # go up one directory
+```
+
+If these are unfamiliar, spend ten minutes navigating your
+filesystem with them before continuing. Git operates on
+'the repository in the current directory', so knowing where
+you are is a prerequisite.
+
+### Configuring your identity
+
+Git stamps every commit with an author name and email.
+Configure these once, globally, before your first commit:
+
+```bash
+git config --global user.name 'Jane Investigator'
+git config --global user.email 'jane@university.edu'
+```
+
+Use the email you will later associate with your GitHub
+account (Day 4), so that your commits are attributed to you
+there. Two further settings are worth applying now. Set the
+default branch name to `main`, the modern convention:
+
+```bash
+git config --global init.defaultBranch main
+```
+
+And set the editor Git opens when it needs a message from
+you. If you are comfortable in a terminal editor, `nano` is
+the gentlest choice:
+
+```bash
+git config --global core.editor nano
+```
+
+Confirm your configuration at any time:
+
+```bash
+$ git config --global --list
+user.name=Jane Investigator
+user.email=jane@university.edu
+init.defaultBranch=main
+core.editor=nano
+```
+
+::: {.callout-tip}
+## Tip
+
+The `--global` flag writes these settings to your home
+directory (`~/.gitconfig`), so they apply to every
+repository on your machine. You configure your identity
+once, not once per project.
+:::
+
+### The three areas
+
+Git's mental model has three areas. Understanding them is
+the single most important concept of Day 1, because every
+later command manipulates the boundaries between them.
+
+```text
+  working directory  --->  staging area  --->  repository
+      (your files)         (the index)        (committed
+                                                 history)
+       git add ----------------^                    ^
+       git commit -----------------------------------
+```
+
+- The **working directory** is the folder of files you edit
+  directly. It holds exactly one version of each file: the
+  current one.
+- The **staging area** (also called the **index**) is a
+  holding zone. You place a snapshot of specific changes
+  here with `git add`, declaring 'these changes belong in
+  my next commit'.
+- The **repository** is the permanent, versioned history.
+  `git commit` takes whatever is in the staging area and
+  records it as a new, immutable snapshot.
+
+The staging area is what distinguishes Git from a simple
+'save a version' button. It lets you commit some of your
+changes and not others, so that each commit is a single
+coherent unit rather than a jumble of unrelated edits. Day
+2 uses this deliberately.
+
+### Creating your first repository
+
+Create a project folder, enter it, and turn it into a
+repository:
+
+```bash
+$ mkdir trial-analysis
+$ cd trial-analysis
+$ git init
+Initialized empty Git repository in
+/Users/jane/trial-analysis/.git/
+```
+
+`git init` creates a hidden subdirectory named `.git` that
+holds the entire history. The rest of the folder is your
+ordinary working directory. Deleting `.git` would revert
+the folder to an unversioned pile of files; everything Git
+knows lives inside it.
+
+Check the state of the new repository:
+
+```bash
+$ git status
+On branch main
+
+No commits yet
+
+nothing to commit (working tree clean)
+```
+
+Read `git status` output often; it is Git's way of telling
+you exactly where you are and what it will do next. Right
+now it reports an empty repository on the `main` branch.
+
+### Making your first commit
+
+Create a small analysis script. You can use any editor;
+here we write a two-line R script:
+
+```bash
+$ echo 'dat <- read.csv("enrollment.csv")' > analysis.R
+$ echo 'summary(dat$age)' >> analysis.R
+```
+
+Now `git status` notices the new file:
+
+```bash
+$ git status
+On branch main
+
+No commits yet
+
+Untracked files:
+  (use "git add <file>..." to include in what will be
+   committed)
+	analysis.R
+
+nothing added to commit but untracked files present
+```
+
+The file is **untracked**: Git sees it but is not yet
+recording its history. Move it into the staging area with
+`git add`:
+
+```bash
+$ git add analysis.R
+$ git status
+On branch main
+
+No commits yet
+
+Changes to be committed:
+  (use "git rm --cached <file>..." to unstage)
+	new file:   analysis.R
+```
+
+The file is now **staged**. Record it as a commit, with a
+message describing the change:
+
+```bash
+$ git commit -m 'Add baseline enrollment analysis'
+[main (root-commit) 8f3a1a2] Add baseline enrollment analysis
+ 1 file changed, 2 insertions(+)
+ create mode 100644 analysis.R
+```
+
+You have made your first commit. The short string `8f3a1a2`
+is the beginning of the commit's forty-character
+identifier, its **hash**, which names this snapshot
+uniquely and permanently. Confirm the clean state:
+
+```bash
+$ git status
+On branch main
+nothing to commit, working tree clean
+```
+
+'Working tree clean' means the working directory matches
+the latest commit exactly: there is nothing uncommitted.
+This is the state you want to be in whenever you stop work.
+
+### The add-commit cycle
+
+Daily Git work is a loop: edit files, stage the changes you
+want, commit them with a message, repeat. Add a second line
+of analysis:
+
+```bash
+$ echo 'sd(dat$age, na.rm = TRUE)' >> analysis.R
+$ git status
+On branch main
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes)
+	modified:   analysis.R
+
+no changes added to commit but "git restore" present
+```
+
+Now the file is **modified** and **tracked** but the change
+is unstaged. Stage and commit it:
+
+```bash
+$ git add analysis.R
+$ git commit -m 'Add age standard deviation'
+[main 2b4c6d8] Add age standard deviation
+ 1 file changed, 1 insertion(+)
+```
+
+You can shorten the stage-and-commit of already-tracked
+files with `git commit -a`, which stages every tracked file
+that has changed:
+
+```bash
+$ echo 'table(dat$arm)' >> analysis.R
+$ git commit -a -m 'Tabulate treatment arm'
+[main 3c5d7e9] Tabulate treatment arm
+ 1 file changed, 1 insertion(+)
+```
+
+Note that `-a` stages only files Git already tracks; a
+brand-new file still needs an explicit `git add`.
+
+### Reading history with git log
+
+`git log` shows the commits, newest first:
+
+```bash
+$ git log
+commit 3c5d7e9... (HEAD -> main)
+Author: Jane Investigator <jane@university.edu>
+Date:   Sat Jul 25 10:15:42 2026 -0700
+
+    Tabulate treatment arm
+
+commit 2b4c6d8...
+Author: Jane Investigator <jane@university.edu>
+Date:   Sat Jul 25 10:12:03 2026 -0700
+
+    Add age standard deviation
+
+commit 8f3a1a2...
+Author: Jane Investigator <jane@university.edu>
+Date:   Sat Jul 25 10:08:55 2026 -0700
+
+    Add baseline enrollment analysis
+```
+
+The one-line-per-commit view is more useful day to day:
+
+```bash
+$ git log --oneline
+3c5d7e9 Tabulate treatment arm
+2b4c6d8 Add age standard deviation
+8f3a1a2 Add baseline enrollment analysis
+```
+
+`HEAD` is Git's name for 'the commit you are currently on',
+almost always the tip of your current branch. Here `HEAD`
+points to `main`, which points to the newest commit. Day 2
+reads this history in far more detail; for now, note that
+you have a complete, ordered, annotated record of how
+`analysis.R` came to be, which the four-file folder from the
+start of the lecture could never provide.
+
+### Ignoring files with .gitignore
+
+Not everything in a project folder belongs under version
+control. Rendered output, cached files, and above all raw
+data with protected health information should be excluded.
+Git reads a file named `.gitignore` and refuses to track
+anything matching its patterns.
+
+Suppose your analysis produces `report.html` and R writes a
+`.Rhistory` file, and your data lives in a `data-raw/`
+folder you must not commit. Create a `.gitignore`:
+
+```bash
+$ echo 'report.html' > .gitignore
+$ echo '.Rhistory' >> .gitignore
+$ echo 'data-raw/' >> .gitignore
+```
+
+Now those paths vanish from `git status`:
+
+```bash
+$ git status
+On branch main
+Untracked files:
+	.gitignore
+
+nothing added to commit but untracked files present
+```
+
+Git no longer mentions `report.html` or `data-raw/`. The
+`.gitignore` file itself, however, should be committed, so
+that everyone working on the project shares the same
+exclusions:
+
+```bash
+$ git add .gitignore
+$ git commit -m 'Add gitignore for output and raw data'
+[main 4d6e8fa] Add gitignore for output and raw data
+ 1 file changed, 3 insertions(+)
+```
+
+::: {.callout-warning}
+## Warning
+
+`.gitignore` prevents Git from tracking a file only if the
+file is not already tracked. If you have already committed a
+file, adding it to `.gitignore` does nothing; you must also
+stop tracking it with `git rm --cached <file>`. The lesson:
+write your `.gitignore` early, ideally as the first commit,
+before any data or output has been staged. Committing
+protected health information and only later discovering it
+in the history is a serious and common accident.
+:::
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: staged versus committed
+
+You run `git add results.csv` and then, before committing,
+edit `results.csv` again. What will `git commit` record: the
+version you staged, or the version now in your working
+directory?
+
+Git records the version you **staged**. `git add` copies a
+snapshot of the file into the staging area at the moment you
+run it. Editing the file afterwards changes the working
+directory but not the staged snapshot, so `git status` will
+now show `results.csv` as both 'staged' (the first edit) and
+'modified' (the second edit). To include the newer edit, run
+`git add results.csv` again before committing. This is a
+frequent source of 'but I changed that' confusion, and it
+follows directly from the three-area model.
+:::
+
+## Worked example: versioning a small analysis from scratch
+
+You are handed a CSV of trial enrollment and asked to
+produce a baseline summary. We place the work under version
+control from the very first step, which is the habit to
+build.
+
+Create and initialise the project:
+
+```bash
+$ mkdir baseline-summary
+$ cd baseline-summary
+$ git init
+Initialized empty Git repository in
+/Users/jane/baseline-summary/.git/
+```
+
+Before writing any analysis, protect the data and output by
+committing a `.gitignore` first:
+
+```bash
+$ printf 'data-raw/\n*.html\n.Rhistory\n.RData\n' > .gitignore
+$ git add .gitignore
+$ git commit -m 'Add gitignore before any data enters repo'
+[main (root-commit) a1b2c3d] Add gitignore before any data
+ 1 file changed, 4 insertions(+)
+```
+
+Write the first version of the analysis and commit it:
+
+```bash
+$ cat > baseline.R <<'EOF'
+dat <- read.csv("data-raw/enrollment.csv")
+n_total <- nrow(dat)
+mean_age <- mean(dat$age, na.rm = TRUE)
+EOF
+$ git add baseline.R
+$ git commit -m 'Add total count and mean age'
+[main 7e8f9a0] Add total count and mean age
+ 1 file changed, 3 insertions(+)
+```
+
+Extend the analysis with a sex breakdown, and commit that
+as a separate, self-contained change:
+
+```bash
+$ echo 'sex_table <- table(dat$sex)' >> baseline.R
+$ git add baseline.R
+$ git commit -m 'Add sex distribution table'
+[main 9b0c1d2] Add sex distribution table
+ 1 file changed, 1 insertion(+)
+```
+
+Inspect the result:
+
+```bash
+$ git log --oneline
+9b0c1d2 Add sex distribution table
+7e8f9a0 Add total count and mean age
+a1b2c3d Add gitignore before any data enters repo
+$ git status
+On branch main
+nothing to commit, working tree clean
+```
+
+In five commits' worth of habit you have built something
+the four-file folder never could: a data file that was
+never at risk of being committed, an analysis whose every
+step is dated and explained, and a clean working tree you
+can walk away from. This is the baseline rhythm of every
+subsequent day.
+
+## Homework
+
+Attempt each problem in your own terminal before checking
+the solution. Create a scratch directory to work in so that
+you can experiment freely.
+
+1. **Confirm your setup.** Run the commands that print your
+   Git version and your global configuration. Confirm that
+   `user.name`, `user.email`, and `init.defaultBranch` are
+   all set. If any is missing, set it.
+
+2. **A repository from nothing.** Create a new directory
+   `hw1-repo`, initialise it as a Git repository, and
+   confirm with `git status` that you are on branch `main`
+   with no commits yet. What does the `.git` directory
+   contain? (List it with `ls -a` and `ls .git`.)
+
+3. **Three commits.** In `hw1-repo`, create a file
+   `notes.txt` containing the single line `Study protocol
+   v1`. Stage and commit it. Then append a second line
+   `Primary endpoint: 12-week change in HbA1c` and commit
+   that. Then append a third line and commit it. Show the
+   resulting history with `git log --oneline`. How many
+   commits are there, and in what order are they listed?
+
+4. **Staged versus modified.** In `hw1-repo`, edit
+   `notes.txt` and run `git add notes.txt`. Before
+   committing, edit `notes.txt` again. Run `git status` and
+   read it carefully. Explain, in your own words, why the
+   same file appears under two different headings.
+
+5. **Write a .gitignore.** In a new directory, create a
+   `.gitignore` that excludes: any file ending in `.html`,
+   any file ending in `.pdf`, a directory named `data-raw/`,
+   and the file `.RData`. Create some files matching those
+   patterns and confirm with `git status` that Git ignores
+   them. Which one file related to ignoring should you
+   commit, and why?
+
+6. **The already-tracked trap.** Create a file
+   `secret.csv`, commit it, and then add `secret.csv` to
+   your `.gitignore`. Run `git status`. Is `secret.csv`
+   ignored now? Explain what you observe and state the
+   command that would actually stop Git from tracking it.
+
+## Solutions
+
+**Problem 1.**
+
+```bash
+git --version
+git config --global --list
+```
+
+If, say, `user.email` is absent, set it with
+`git config --global user.email 'you@example.edu'`. The
+`--global --list` output should show `user.name`,
+`user.email`, and `init.defaultBranch=main` at a minimum.
+
+**Problem 2.**
+
+```bash
+mkdir hw1-repo
+cd hw1-repo
+git init
+git status
+#> On branch main
+#>
+#> No commits yet
+#>
+#> nothing to commit (working tree clean)
+ls -a
+#> .  ..  .git
+ls .git
+#> HEAD  config  description  hooks  info  objects  refs
+```
+
+The `.git` directory holds the entire repository: the
+`objects` store (every version of every file and every
+commit), the `refs` (branch and tag pointers), `HEAD` (the
+pointer to your current position), and `config` (the
+repository's local settings). You will rarely look inside
+it, but it is worth seeing once so that 'the repository' is
+a concrete thing rather than an abstraction.
+
+**Problem 3.**
+
+```bash
+echo 'Study protocol v1' > notes.txt
+git add notes.txt
+git commit -m 'Add protocol version line'
+
+echo 'Primary endpoint: 12-week change in HbA1c' >> notes.txt
+git commit -a -m 'Record primary endpoint'
+
+echo 'Randomisation: 1:1, stratified by site' >> notes.txt
+git commit -a -m 'Record randomisation scheme'
+
+git log --oneline
+#> c3d4e5f Record randomisation scheme
+#> b2c3d4e Record primary endpoint
+#> a1b2c3d Add protocol version line
+```
+
+There are three commits. `git log` lists them **newest
+first**, so the most recent commit is at the top. (Your
+hashes will differ from those shown; hashes are computed
+from the content and metadata of each commit and are
+effectively unique.)
+
+**Problem 4.** After the second edit, `git status` shows
+`notes.txt` under both 'Changes to be committed' (the
+staged first edit) and 'Changes not staged for commit' (the
+second edit, still only in the working directory). This
+happens because `git add` snapshots the file at the instant
+it runs. The first edit was snapshotted into the staging
+area; the second edit changed the working directory but not
+that snapshot. A commit now would record only the first
+edit. Running `git add notes.txt` again would fold the
+second edit into the staging area as well.
+
+**Problem 5.**
+
+```bash
+mkdir hw5-repo
+cd hw5-repo
+git init
+cat > .gitignore <<'EOF'
+*.html
+*.pdf
+data-raw/
+.RData
+EOF
+touch report.html manuscript.pdf .RData
+mkdir data-raw
+touch data-raw/phi.csv
+git status
+#> On branch main
+#>
+#> No commits yet
+#>
+#> Untracked files:
+#>	.gitignore
+#>
+#> nothing added to commit but untracked files present
+```
+
+Only `.gitignore` appears; the four ignored targets do not.
+You should commit `.gitignore` itself. Committing it shares
+the exclusion rules with every collaborator and with your
+future self, so that the same files are ignored everywhere
+the repository is cloned. An uncommitted `.gitignore`
+protects only your own machine.
+
+**Problem 6.**
+
+```bash
+echo 'id,value' > secret.csv
+git add secret.csv
+git commit -m 'Add data file (mistake)'
+echo 'secret.csv' >> .gitignore
+git status
+#> On branch main
+#> nothing to commit, working tree clean
+```
+
+`secret.csv` is **not** ignored. `.gitignore` governs only
+**untracked** files; once a file has been committed, Git
+continues to track it regardless of `.gitignore`. To stop
+tracking it while keeping the local copy:
+
+```bash
+git rm --cached secret.csv
+git commit -m 'Stop tracking secret.csv'
+```
+
+`git rm --cached` removes the file from Git's tracking (and
+from future commits) but leaves it in your working
+directory. Note that the file still exists in the earlier
+commit; truly purging sensitive data from history is a
+harder problem, covered in the *Practicum*. The practical
+lesson is the one from the lecture: write `.gitignore`
+first.
+
+## What's next
+
+Day 2 goes inside the commit. You will compare versions with
+`git diff`, inspect any past snapshot with `git show`,
+navigate and search the history, learn what separates a
+useful commit message from a useless one, and, most
+importantly, learn to undo changes safely with
+`git restore`, `git revert`, and `git reset`. Keep the
+`baseline-summary` repository from the worked example; Day 2
+builds on it.

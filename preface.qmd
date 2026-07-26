@@ -1,0 +1,150 @@
+# Preface {.unnumbered}
+
+This volume is a one-week boot camp for incoming graduate
+students in biostatistics who arrive with no or minimal
+prior exposure to version control. It is the second half of
+the pre-program preparation; the companion volume *R for
+Biostatistics* covers the R language over an equivalent
+week. Where that book makes a student functional in R, this
+one makes a student's work reproducible and shareable. Both
+are prerequisites that every subsequent volume in the
+sequence assumes.
+
+The design constraint is severe: five lectures, ten hours
+of homework, and the student arrives at the academic
+programme able to place any analysis under version control
+and collaborate on GitHub. The constraint is met by
+ruthless prioritisation. Git is a large and idiosyncratic
+tool; the great majority of its surface area is omitted
+deliberately. What remains is the irreducible core that a
+practising biostatistician uses every day.
+
+## Why version control belongs in a biostatistics curriculum
+
+The case for teaching version control to statisticians is
+not a case about software engineering. It is a case about
+research integrity. Consider three failures that every
+data analyst has seen or committed:
+
+- A results table in a manuscript cannot be reproduced
+  because the script was edited after the table was made,
+  and no record of the earlier version survives.
+- A folder contains `analysis.R`, `analysis_final.R`,
+  `analysis_final_v2.R`, and `analysis_FINAL_use_this.R`,
+  and nobody can say which produced the submitted figures.
+- Two collaborators email a script back and forth, each
+  edits it, and their changes silently overwrite one
+  another.
+
+Each of these is a version-control failure, and each
+threatens the reproducibility that is the ethical
+foundation of quantitative science. Git solves all three
+directly: it records every version of every file with an
+author, a timestamp, and a message; it makes the history
+navigable; and it merges concurrent edits rather than
+losing them. A biostatistician who internalises this treats
+the commit history as a lab notebook, which is precisely
+what it is.
+
+## What this book covers
+
+Five days, one chapter each:
+
+1. **Why version control, setup, first repository.** What
+   version control is and why it is a reproducibility tool;
+   installing and configuring Git; the working directory,
+   staging area, and repository; `git init`, `git status`,
+   `git add`, `git commit`, `git log`; the `.gitignore`
+   file.
+2. **Recording history: commits, diffs, undoing.** The
+   commit as a snapshot; `git diff` and `git show`; reading
+   and navigating history; writing commit messages that
+   earn their place; undoing safely with `git restore`,
+   `git revert`, and `git reset`; amending.
+3. **Branching and merging.** Branches as movable pointers;
+   `git branch`, `git switch`, `git merge`; the
+   feature-branch workflow; merge conflicts and how to
+   resolve them without fear.
+4. **GitHub: remotes and publishing.** What GitHub is;
+   authenticating with the `gh` command-line tool;
+   `git remote`, `git push`, `git pull`, `git fetch`,
+   `git clone`; creating repositories with `gh repo
+   create`; READMEs and issues.
+5. **Collaboration and reproducible research.** The
+   fork-and-pull-request workflow; opening and reviewing
+   pull requests with `gh pr`; resolving remote conflicts;
+   using Git through the RStudio IDE; `.gitignore` for R
+   projects, `renv`, and data; the handoff to the
+   *Biostatistics Practicum* volume.
+
+Each chapter is approximately 1 hour of reading and worked
+examples plus 2 hours of homework problems with worked
+solutions provided.
+
+## What this book does not cover
+
+The book deliberately omits, and points elsewhere for,
+nearly everything beyond the daily core:
+
+- Git internals (the object database, the reflog, plumbing
+  commands), interactive rebasing, cherry-picking,
+  submodules, and hooks. See the *Biostatistics Practicum*.
+- Continuous integration, automated testing, and GitHub
+  Actions. See the *Practicum* and *Advanced Statistical
+  Computing in the Age of AI*.
+- Containerised and dependency-pinned reproducibility
+  (Docker, `renv` in depth). See the *Practicum*.
+- Regulatory version-control practice for clinical trials
+  (CDISC deliverables, validated pipelines). See the
+  *Practicum* and *Applied Statistical Methods for Health
+  Sciences Research*.
+
+The boot camp is intentionally narrow. The student finishes
+Day 5 able to work fluently in the everyday Git workflow,
+leaving the *Practicum* free to teach the infrastructure
+that surrounds it.
+
+## How this book is meant to be used
+
+The five-day cadence is the spine. A student starting the
+week having never made a commit can finish the week
+collaborating on GitHub. The cadence assumes roughly 3
+hours of focused work per day:
+
+- **Hour 1:** Read the chapter, running every command in
+  your own terminal as you reach it. Git is learned by
+  typing, not by reading.
+- **Hours 2-3:** Complete the homework problems. Solutions
+  are at the end of each chapter; check yourself only after
+  attempting each problem.
+
+The commands in this book are shown for a Unix-style shell
+(macOS Terminal, Linux, or Git Bash on Windows). Where a
+step differs on Windows, the difference is noted.
+
+## Prerequisites
+
+The book assumes:
+
+- A working laptop running macOS, Windows, or Linux.
+- Basic familiarity with the command line: opening a
+  terminal, changing directories with `cd`, listing files
+  with `ls`. A short refresher is provided on Day 1.
+- No prior exposure to Git, GitHub, or any version-control
+  system.
+
+Prior completion of *R for Biostatistics* is helpful, since
+the worked examples version R analysis scripts, but it is
+not strictly required; the Git mechanics are independent of
+the language of the files under version control.
+
+## Acknowledgements
+
+This boot camp consolidates patterns developed over two
+decades of teaching reproducible workflows to incoming
+biostatistics students. Jenny Bryan's *Happy Git and GitHub
+for the useR* and the Software Carpentry version-control
+lessons provide the technical scaffolding; the boot-camp
+pedagogy reflects experience with what incoming students
+actually need in their first week, as distinct from the
+full capabilities of the tool.

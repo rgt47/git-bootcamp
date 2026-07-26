@@ -1,0 +1,957 @@
+# Day 4: GitHub: Remotes and Publishing {#sec-day4}
+
+## Learning objectives
+
+By the end of this day you should be able to:
+
+- Explain what GitHub is, how it differs from Git, and what
+  a 'remote' is.
+- Install the GitHub command-line tool `gh` and authenticate
+  it with your GitHub account.
+- Publish an existing local repository to GitHub in a single
+  command with `gh repo create`.
+- Describe the remote mechanics that `gh` sets up: `origin`,
+  upstream tracking, and the difference between `git push`
+  and `git push -u`.
+- Send commits to GitHub with `git push` and retrieve
+  changes with `git fetch` and `git pull`.
+- Copy a repository, with its full history, using
+  `git clone` and `gh repo clone`.
+- Browse a repository from the terminal with `gh repo view`
+  and `gh browse`.
+- Write a `README.md` as the front page of a repository.
+- Track tasks and defects as issues with `gh issue`.
+
+## Lecture
+
+### What GitHub is, and what it is not
+
+Days 1 through 3 used Git entirely offline. Every commit you
+made lives in the `.git` directory inside your project
+folder, on your own machine, and nowhere else. That is a
+complete version-control system, but it has two limitations.
+If your laptop is lost, so is your work. And no collaborator
+can see the history, because it exists only on your disk.
+
+**GitHub** removes both limitations. It is a website that
+**hosts** Git repositories: it stores a copy of your
+repository on its servers, from which you can retrieve it
+anywhere and to which collaborators can contribute. It is
+important to be precise about the relationship. GitHub does
+not replace Git and adds no new version-control concepts.
+The commits, branches, and history are exactly the ones Git
+already made on your machine; GitHub simply holds a
+synchronised copy and layers collaboration tools (issues,
+pull requests, code review) on top.
+
+GitHub is one host among several. GitLab and Bitbucket offer
+the same core service, and an organisation can run its own
+private server. The Git commands you learned this week work
+identically against any of them. This book uses GitHub
+because it is the de facto standard in academic
+biostatistics, and it uses GitHub's official command-line
+tool, `gh`, throughout.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: does GitHub store new history?
+
+You have made ten commits locally. You publish the
+repository to GitHub. Has GitHub created any new commits, or
+changed any of your commit hashes?
+
+No. Publishing copies your existing commits, unchanged, to
+GitHub's servers. The ten commits keep their exact hashes,
+authors, timestamps, and messages, because a commit's hash
+is computed from its content and would change if anything
+about it changed. GitHub holds a faithful copy of the
+history Git already built. This is why the distinction
+matters: Git does the version control; GitHub does the
+hosting. Nothing about your local history depends on GitHub
+existing.
+:::
+
+### What a remote is
+
+A **remote** is a named reference to another copy of your
+repository, almost always one hosted elsewhere, such as on
+GitHub. It is a bookmark: a short name paired with a URL,
+so that instead of typing the full address every time you
+synchronise, you refer to it by name. By universal
+convention the primary remote is named `origin`.
+
+```text
+   your laptop                      GitHub
+  +-------------+                +-------------+
+  | local repo  |  --- push -->  | origin      |
+  | (.git)      |  <-- fetch --- | (remote copy)|
+  +-------------+                +-------------+
+```
+
+You **push** commits from your local repository up to the
+remote, and you **fetch** or **pull** commits from the
+remote down to your local repository. The remote is just
+another repository; the same objects (commits, trees, blobs)
+move between the two. Everything in this chapter is
+machinery for keeping a local repository and its `origin`
+remote synchronised.
+
+### Installing the GitHub CLI
+
+The GitHub CLI is a program named `gh`. It is separate from
+Git: `git` manages your local repository, while `gh` talks
+to GitHub's servers on your behalf, so that repository
+creation, issues, and later pull requests can be driven from
+the terminal rather than a web browser.
+
+**macOS.** With Homebrew, `brew install gh`.
+
+**Windows.** Download the installer from
+<https://cli.github.com>, or use `winget install --id
+GitHub.cli`. Run subsequent commands in Git Bash.
+
+**Linux.** Follow the package-manager instructions at
+<https://github.com/cli/cli#installation>; on Debian or
+Ubuntu the tool is installed from GitHub's package
+repository.
+
+Confirm the installation:
+
+```bash
+$ gh --version
+gh version 2.55.0 (2026-06-18)
+https://github.com/cli/cli/releases/latest
+```
+
+Any recent version is suitable. You also need a free GitHub
+account, created at <https://github.com>, before the next
+step.
+
+### Authenticating with gh auth login
+
+Before `gh` can act on your behalf it must prove to GitHub
+that you are you. Run the interactive login once per
+machine:
+
+```bash
+$ gh auth login
+? Where do you use GitHub? GitHub.com
+? What is your preferred protocol for Git operations
+  on this host? HTTPS
+? Authenticate Git with your GitHub credentials? Yes
+? How would you like to authenticate GitHub CLI?
+  Login with a web browser
+
+! First copy your one-time code: A1B2-C3D4
+Press Enter to open github.com in your browser...
+```
+
+Work through the prompts as shown. Choose **GitHub.com**
+(not an enterprise server), **HTTPS** as the protocol (the
+simplest option, requiring no SSH-key setup), and **Yes** to
+let `gh` configure Git to use your GitHub credentials.
+Finally choose **Login with a web browser**. The tool prints
+a one-time code, opens your browser, and asks you to paste
+the code and confirm. On success:
+
+```bash
+✓ Authentication complete.
+- gh config set -h github.com git_protocol https
+✓ Configured git protocol
+✓ Logged in as rgt47
+```
+
+You authenticate once. The credential is stored securely by
+your operating system, and every later `gh` command, and
+every `git push` to GitHub, uses it silently. Confirm the
+state at any time:
+
+```bash
+$ gh auth status
+github.com
+  ✓ Logged in to github.com account rgt47 (keyring)
+  - Active account: true
+  - Git operations protocol: https
+  - Token scopes: 'gist', 'read:org', 'repo'
+```
+
+::: {.callout-tip}
+## Tip
+
+Choosing HTTPS at the protocol prompt is the right default
+for this book. It lets `gh` manage your credentials for you,
+so `git push` never asks for a password. SSH keys are a fine
+alternative once you are comfortable, but they require
+generating and registering a key pair first, which HTTPS
+avoids entirely.
+:::
+
+### Publishing a local repository in one step
+
+You already have a local repository from Days 1 through 3.
+Publishing it to GitHub is a single command run from inside
+the repository:
+
+```bash
+$ gh repo create baseline-summary \
+    --public --source=. --remote=origin --push
+```
+
+Each flag does one thing:
+
+- `baseline-summary` is the name the repository will have on
+  GitHub. Omit it to reuse the current folder's name.
+- `--public` makes the repository visible to anyone. Use
+  `--private` instead to restrict it to you and people you
+  explicitly grant access (discussed below).
+- `--source=.` tells `gh` to publish the existing repository
+  in the current directory, rather than create an empty new
+  one.
+- `--remote=origin` names the new GitHub repository as your
+  `origin` remote locally, wiring the two together.
+- `--push` immediately pushes your existing commits up, so
+  the GitHub copy is populated at once.
+
+The output confirms each step:
+
+```bash
+✓ Created repository rgt47/baseline-summary on GitHub
+  https://github.com/rgt47/baseline-summary
+✓ Added remote https://github.com/rgt47/baseline-summary.git
+✓ Pushed commits to
+  https://github.com/rgt47/baseline-summary.git
+```
+
+Your local history is now mirrored on GitHub, and the local
+repository knows where its remote copy lives. That is the
+entire publishing workflow.
+
+### Public, private, and protected health information
+
+The choice between `--public` and `--private` is not
+cosmetic; for a biostatistician it is a data-governance
+decision. A public repository is readable by the entire
+internet. A private repository is visible only to you and
+collaborators you name.
+
+```bash
+$ gh repo create trial-2026-interim \
+    --private --source=. --remote=origin --push
+✓ Created repository rgt47/trial-2026-interim on GitHub
+```
+
+::: {.callout-warning}
+## Warning
+
+Protected health information (PHI) must never be pushed to a
+public repository, and ideally never to GitHub at all, public
+or private. Pushing publishes not only the current files but
+the entire history: a data file committed once and deleted
+later still lives in an earlier commit and travels to GitHub
+with everything else. Making a repository private reduces but
+does not eliminate the exposure, because access is still
+granted through a third-party commercial service outside your
+institution's control. The safe practice established on Day 1
+is the safeguard here: keep raw data in a `data-raw/` folder
+that `.gitignore` excludes, so it is never committed and
+therefore never pushed. Verify what you are about to publish
+with `git log --stat` before running `gh repo create`.
+:::
+
+### The remote mechanics gh sets up
+
+`gh repo create` is a convenience wrapper. It is worth seeing
+the plain Git commands underneath, both to understand what
+happened and because you will meet them in repositories set
+up by others. Inspect your remotes:
+
+```bash
+$ git remote -v
+origin  https://github.com/rgt47/baseline-summary.git (fetch)
+origin  https://github.com/rgt47/baseline-summary.git (push)
+```
+
+The name `origin` maps to a URL, listed twice because Git
+allows a different address for fetching and for pushing;
+here they are the same. Had you created the GitHub
+repository through the website instead, you would connect it
+manually with the command `gh` ran for you:
+
+```bash
+git remote add origin \
+  https://github.com/rgt47/baseline-summary.git
+```
+
+And you would send your first commits with:
+
+```bash
+$ git push -u origin main
+Enumerating objects: 12, done.
+Counting objects: 100% (12/12), done.
+Writing objects: 100% (12/12), 1.34 KiB, done.
+To https://github.com/rgt47/baseline-summary.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+```
+
+The `-u` flag (short for `--set-upstream`) is worth
+understanding. It records that your local `main` branch
+**tracks** `origin/main`, that is, establishes a default
+pairing between the two. Once that link exists, you no
+longer name the remote and branch each time; a bare
+`git push` knows to send `main` to `origin`, and a bare
+`git pull` knows where to retrieve from. You set the
+upstream once per branch; thereafter:
+
+```bash
+$ git push
+Everything up-to-date
+```
+
+### Pushing later commits
+
+After the initial publish, your daily rhythm gains one step.
+You still edit, stage, and commit locally as on Days 1
+through 3. When you want the GitHub copy to catch up, you
+push:
+
+```bash
+$ echo 'quantile(dat$age, na.rm = TRUE)' >> baseline.R
+$ git commit -a -m 'Add age quantiles'
+[main 5f6a7b8] Add age quantiles
+ 1 file changed, 1 insertion(+)
+$ git push
+Enumerating objects: 5, done.
+Writing objects: 100% (3/3), 312 bytes, done.
+To https://github.com/rgt47/baseline-summary.git
+   9b0c1d2..5f6a7b8  main -> main
+```
+
+The last line reports that `origin/main` moved from commit
+`9b0c1d2` to `5f6a7b8`. Committing and pushing are separate
+acts: commits accumulate locally, and a push sends whatever
+has accumulated since the last push. It is common and
+correct to make several commits and push them together.
+
+### Getting changes: fetch and pull
+
+Synchronisation runs both ways. When the GitHub copy has
+commits your local repository lacks, because a collaborator
+pushed, or because you pushed from another computer, you
+bring them down. There are two commands, and the difference
+between them matters.
+
+`git fetch` downloads new commits from the remote into your
+local repository but does **not** change your working files.
+It updates `origin/main`, Git's record of where the remote
+branch is, and leaves your own `main` untouched:
+
+```bash
+$ git fetch
+remote: Enumerating objects: 4, done.
+From https://github.com/rgt47/baseline-summary
+   5f6a7b8..a1c2e3f  main -> origin/main
+```
+
+After a fetch you can inspect what arrived before letting it
+touch your work. `git pull` goes one step further: it
+fetches and then immediately **merges** the fetched commits
+into your current branch. It is exactly `git fetch` followed
+by `git merge origin/main`:
+
+```bash
+$ git pull
+Updating 5f6a7b8..a1c2e3f
+Fast-forward
+ baseline.R | 2 ++
+ 1 file changed, 2 insertions(+)
+```
+
+For everyday solo work, `git pull` is what you want: it is
+the one command that makes your local branch match the
+remote. When collaboration introduces the possibility that
+both sides have changed, a pull can produce a merge conflict,
+handled exactly as on Day 3. The remote dimension of
+conflicts is the subject of Day 5; for now, note only that
+fetch inspects and pull incorporates.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: fetch versus pull
+
+You run `git fetch` and see that `origin/main` has advanced
+by three commits. You then run `git log --oneline` and your
+own `main` still points where it did before. Is something
+broken?
+
+No; this is exactly what `git fetch` does. Fetch updates only
+the remote-tracking branch `origin/main`, which records where
+GitHub's `main` is. It deliberately leaves your local `main`
+and your working files unchanged, so that you can review the
+incoming commits before adopting them. To move your own
+`main` up to match, run `git merge origin/main`, or run
+`git pull`, which performs the fetch and the merge together.
+Fetch is the cautious half of pull.
+:::
+
+### Cloning an existing repository
+
+Publishing sends a local repository up to GitHub. **Cloning**
+does the reverse: it copies a repository from GitHub down to
+a new folder on your machine. This is how you obtain a
+collaborator's project, or your own project on a second
+computer. With plain Git you pass the URL:
+
+```bash
+$ git clone https://github.com/rgt47/baseline-summary.git
+Cloning into 'baseline-summary'...
+remote: Enumerating objects: 15, done.
+remote: Total 15 (delta 3), reused 15 (delta 3)
+Receiving objects: 100% (15/15), 2.1 KiB, done.
+Resolving deltas: 100% (3/3), done.
+```
+
+`gh` offers a shorter form that needs only the
+`owner/name`, and that authenticates automatically for
+private repositories:
+
+```bash
+$ gh repo clone rgt47/baseline-summary
+Cloning into 'baseline-summary'...
+```
+
+A clone is not a download of the current files alone. It
+copies the **entire history**: every commit, branch, and
+tag, the complete `.git` directory. The clone is a fully
+independent repository, already wired to the source as its
+`origin` remote, so you can immediately `git push` and
+`git pull` against it. Cloning is the standard way any
+project reaches a new machine.
+
+### The README as the front page
+
+A file named `README.md` in the top of a repository is
+special to GitHub: it is rendered, as formatted text, on the
+repository's landing page. It is the first thing any visitor
+sees, and for a research repository it should state what the
+analysis is, what the files are, and how to reproduce the
+results. The `.md` extension denotes **Markdown**, a plain-
+text formatting syntax; a leading `#` marks a heading, `-`
+marks a list item, and backticks mark code.
+
+```bash
+$ cat > README.md <<'EOF'
+# Baseline Summary
+
+Baseline characteristic summaries for the 2026 trial
+enrollment cohort.
+
+## Files
+
+- `baseline.R` -- computes counts, mean age, and the sex
+  distribution from the enrollment data.
+
+## Reproducing
+
+Place the enrollment CSV at `data-raw/enrollment.csv`, then
+run `Rscript baseline.R`.
+EOF
+$ git add README.md
+$ git commit -m 'Add README describing the analysis'
+[main 6b7c8d9] Add README describing the analysis
+ 1 file changed, 14 insertions(+)
+$ git push
+```
+
+Because a README is an ordinary tracked file, it is
+versioned like any other; edits to it are commits, and it
+stays synchronised through push and pull. On GitHub, the
+rendered README now heads the repository page.
+
+### Browsing a repository from the terminal
+
+You need not open a browser to inspect a published
+repository. `gh repo view` prints its metadata and rendered
+README to the terminal:
+
+```bash
+$ gh repo view
+rgt47/baseline-summary
+Baseline characteristic summaries for the 2026 trial cohort.
+
+# Baseline Summary
+Baseline characteristic summaries for the 2026 trial
+enrollment cohort.
+...
+View this repository on GitHub:
+https://github.com/rgt47/baseline-summary
+```
+
+To open the same page in your web browser, add `--web`:
+
+```bash
+$ gh repo view --web
+Opening github.com/rgt47/baseline-summary in your browser.
+```
+
+And `gh browse` opens the repository, or a specific file or
+line, in the browser directly, which is convenient for
+sending a colleague a link to exactly the code under
+discussion:
+
+```bash
+$ gh browse baseline.R
+Opening github.com/rgt47/baseline-summary/blob/main/baseline.R
+```
+
+### Issues as a tracked to-do list
+
+An **issue** on GitHub is a titled, numbered, discussable
+note attached to a repository. Issues are how a project
+records what remains to be done and what has gone wrong: a
+planned analysis, a bug in a script, a reviewer's request.
+Unlike a private to-do list, issues are shared, searchable,
+and permanently linked to the repository. Create one from
+the terminal:
+
+```bash
+$ gh issue create \
+    --title 'Add sensitivity analysis excluding site 4' \
+    --body 'Reviewer 2 flagged that site 4 enrolled
+late and may bias the baseline age summary. Add a
+sensitivity analysis rerunning baseline.R with site 4
+excluded.'
+Creating issue in rgt47/baseline-summary
+
+https://github.com/rgt47/baseline-summary/issues/1
+```
+
+The issue is now number 1. List the open issues:
+
+```bash
+$ gh issue list
+Showing 1 of 1 open issue in rgt47/baseline-summary
+
+ID  TITLE                                    LABELS  UPDATED
+#1  Add sensitivity analysis excluding site 4         now
+```
+
+View the full text and discussion of one issue:
+
+```bash
+$ gh issue view 1
+Add sensitivity analysis excluding site 4 #1
+Open - rgt47 opened about 1 minute ago - 0 comments
+
+  Reviewer 2 flagged that site 4 enrolled late and may
+  bias the baseline age summary. Add a sensitivity
+  analysis rerunning baseline.R with site 4 excluded.
+
+View this issue on GitHub:
+https://github.com/rgt47/baseline-summary/issues/1
+```
+
+When the work is done, close the issue, optionally with a
+comment recording how:
+
+```bash
+$ gh issue close 1 \
+    --comment 'Added sensitivity analysis in commit 8d9e0f1.'
+✓ Closed issue #1 (Add sensitivity analysis excluding site 4)
+```
+
+Framed this way, issues are a research log of open questions
+and their resolutions, kept beside the code rather than in a
+separate document that drifts out of date. Day 5 connects
+issues to pull requests, so that a commit can close an issue
+automatically.
+
+## Worked example: publishing the baseline-summary repository
+
+We continue the `baseline-summary` repository from Days 1
+through 3. It has several commits recording the growth of
+`baseline.R`, a `.gitignore` protecting the raw data, and a
+clean working tree. The task today is to publish it, add to
+it, and record a follow-up task as an issue.
+
+First confirm you are authenticated. If this is your first
+time, run `gh auth login` and complete the browser flow
+described in the lecture; otherwise check the existing state:
+
+```bash
+$ gh auth status
+github.com
+  ✓ Logged in to github.com account rgt47 (keyring)
+  - Active account: true
+  - Git operations protocol: https
+```
+
+Before publishing, confirm that nothing sensitive is about to
+travel to GitHub. Review which files the history contains:
+
+```bash
+$ git log --oneline
+9b0c1d2 Add sex distribution table
+7e8f9a0 Add total count and mean age
+a1b2c3d Add gitignore before any data enters repo
+$ git ls-files
+.gitignore
+baseline.R
+```
+
+Only `.gitignore` and `baseline.R` are tracked; the raw data
+under `data-raw/` was never committed, exactly as the Day 1
+discipline intended. It is safe to publish. Do so in one
+command:
+
+```bash
+$ gh repo create baseline-summary \
+    --public --source=. --remote=origin --push
+✓ Created repository rgt47/baseline-summary on GitHub
+  https://github.com/rgt47/baseline-summary
+✓ Added remote https://github.com/rgt47/baseline-summary.git
+✓ Pushed commits to
+  https://github.com/rgt47/baseline-summary.git
+```
+
+Verify that the remote was wired up and the history landed:
+
+```bash
+$ git remote -v
+origin  https://github.com/rgt47/baseline-summary.git (fetch)
+origin  https://github.com/rgt47/baseline-summary.git (push)
+$ gh repo view
+rgt47/baseline-summary
+No description provided.
+
+This repository does not have a README
+
+View this repository on GitHub:
+https://github.com/rgt47/baseline-summary
+```
+
+The repository is live but has no front page. Add a README,
+commit it, and push the new commit:
+
+```bash
+$ cat > README.md <<'EOF'
+# Baseline Summary
+
+Baseline characteristic summaries for the 2026 trial
+enrollment cohort.
+
+## Files
+
+- `baseline.R` -- total count, mean age, sex distribution.
+
+## Reproducing
+
+Place the enrollment CSV at `data-raw/enrollment.csv`, then
+run `Rscript baseline.R`.
+EOF
+$ git add README.md
+$ git commit -m 'Add README describing the analysis'
+[main 6b7c8d9] Add README describing the analysis
+ 1 file changed, 12 insertions(+)
+$ git push
+Enumerating objects: 4, done.
+Writing objects: 100% (3/3), 421 bytes, done.
+To https://github.com/rgt47/baseline-summary.git
+   9b0c1d2..6b7c8d9  main -> main
+```
+
+Notice the push named neither remote nor branch: the
+upstream link that `gh repo create` established lets a bare
+`git push` do the right thing. Finally, record a follow-up
+analysis task as an issue, so it is not forgotten:
+
+```bash
+$ gh issue create \
+    --title 'Report age as median (IQR) for skewed cohort' \
+    --body 'Age is right-skewed; a mean may mislead. Add
+median and interquartile range to baseline.R alongside the
+existing mean.'
+Creating issue in rgt47/baseline-summary
+
+https://github.com/rgt47/baseline-summary/issues/1
+```
+
+The repository is now published, documented, and carrying a
+tracked task, all from the terminal. In a handful of commands
+the local work of Days 1 through 3 has become a shareable,
+backed-up, self-documenting research artifact.
+
+## Homework
+
+Attempt each problem in your own terminal before checking
+the solution. These problems assume you have created a free
+GitHub account and authenticated `gh` with `gh auth login`.
+Delete any practice repositories afterwards with
+`gh repo delete <name>` if you wish to keep your account
+tidy.
+
+1. **Confirm your tools.** Run the commands that print your
+   `gh` version and your authentication status. Confirm that
+   you are logged in to `github.com` and that the Git
+   operations protocol is `https`.
+
+2. **Publish a repository.** Create a local repository named
+   `hw4-repo`, make at least two commits (for example, a
+   `README.md` and a short R script), and publish it to
+   GitHub as a public repository in a single `gh repo create`
+   command that also pushes. Confirm with `git remote -v`
+   that `origin` points to your new GitHub repository.
+
+3. **Push a later commit.** In the repository from Problem 2,
+   add a new line to your R script, commit it, and push it
+   with a bare `git push` (no remote or branch named).
+   Explain why naming the remote and branch was unnecessary.
+
+4. **Public versus private.** Create a second repository
+   `hw4-private` and publish it with `--private`. Using
+   `gh repo view`, confirm its visibility. State one reason a
+   biostatistician would choose `--private`, and explain why
+   even a private GitHub repository is an inappropriate home
+   for protected health information.
+
+5. **Clone your own work.** In a different directory (for
+   example, a temporary folder simulating a second computer),
+   clone the repository from Problem 2 using
+   `gh repo clone`. Run `git log --oneline` in the clone.
+   Does the clone contain the full history or only the latest
+   files? Confirm that the clone already has `origin`
+   configured.
+
+6. **Open and close an issue.** In the repository from
+   Problem 2, open an issue titled `Add unit tests for the
+   summary function` with a one-sentence body. List your open
+   issues, view the issue by its number, then close it with a
+   closing comment. Confirm with `gh issue list` that no open
+   issues remain.
+
+7. **Fetch versus pull.** In the clone from Problem 5, do
+   nothing. In the original repository from Problem 2, make a
+   new commit and push it. Return to the clone and run
+   `git fetch`. Does `git log --oneline` in the clone show
+   the new commit yet? Now run `git merge origin/main` (or
+   `git pull`) and check again. Explain the difference in one
+   or two sentences.
+
+8. **Reconstruct what gh automated.** Create a local
+   repository `hw4-manual` with one commit, and create an
+   empty repository of the same name on GitHub with
+   `gh repo create hw4-manual --public` (no `--source`).
+   Then connect and publish it using only plain Git commands:
+   `git remote add`, and `git push -u`. Confirm the result
+   with `git remote -v` and `gh repo view`. What did the
+   `-u` flag record, and how would you verify it?
+
+## Solutions
+
+**Problem 1.**
+
+```bash
+gh --version
+gh auth status
+#> github.com
+#>   ✓ Logged in to github.com account rgt47 (keyring)
+#>   - Active account: true
+#>   - Git operations protocol: https
+```
+
+If `gh auth status` reports that you are not logged in, run
+`gh auth login` and complete the browser flow, choosing
+GitHub.com, HTTPS, and login via web browser.
+
+**Problem 2.**
+
+```bash
+mkdir hw4-repo
+cd hw4-repo
+git init
+echo '# HW4 Repo' > README.md
+git add README.md
+git commit -m 'Add README'
+echo 'x <- rnorm(100)' > sim.R
+git add sim.R
+git commit -m 'Add simulation script'
+gh repo create hw4-repo --public --source=. --remote=origin --push
+#> ✓ Created repository rgt47/hw4-repo on GitHub
+#> ✓ Added remote https://github.com/rgt47/hw4-repo.git
+#> ✓ Pushed commits to https://github.com/rgt47/hw4-repo.git
+git remote -v
+#> origin  https://github.com/rgt47/hw4-repo.git (fetch)
+#> origin  https://github.com/rgt47/hw4-repo.git (push)
+```
+
+The single `gh repo create` created the GitHub repository,
+added it as `origin`, and pushed both commits.
+
+**Problem 3.**
+
+```bash
+echo 'y <- rnorm(100)' >> sim.R
+git commit -a -m 'Add second simulated variable'
+git push
+#> To https://github.com/rgt47/hw4-repo.git
+#>    a1b2c3d..b2c3d4e  main -> main
+```
+
+Naming the remote and branch was unnecessary because
+`gh repo create --push` set the upstream of local `main` to
+`origin/main`. Once a branch has an upstream, a bare
+`git push` sends the current branch to its tracked remote
+branch by default. You would only name them explicitly to
+push somewhere other than the recorded upstream.
+
+**Problem 4.**
+
+```bash
+mkdir hw4-private
+cd hw4-private
+git init
+echo '# Private' > README.md
+git add README.md
+git commit -m 'Add README'
+gh repo create hw4-private --private --source=. --remote=origin --push
+gh repo view
+#> rgt47/hw4-private
+#> ...
+#> Visibility: private
+```
+
+A biostatistician chooses `--private` to keep unpublished
+analyses, draft manuscripts, or study code restricted to the
+research team before results are public. Even so, a private
+GitHub repository is an inappropriate home for protected
+health information: the data would reside on a third-party
+commercial server outside institutional control, access is
+governed by GitHub accounts rather than by the study's data-
+use agreement, and the entire commit history, including any
+data committed and later deleted, travels with the
+repository. Keep raw data out of the repository entirely, as
+established on Day 1.
+
+**Problem 5.**
+
+```bash
+cd /tmp
+gh repo clone rgt47/hw4-repo hw4-clone
+cd hw4-clone
+git log --oneline
+#> b2c3d4e Add second simulated variable
+#> a1b2c3d Add simulation script
+#> 9f8e7d6 Add README
+git remote -v
+#> origin  https://github.com/rgt47/hw4-repo.git (fetch)
+#> origin  https://github.com/rgt47/hw4-repo.git (push)
+```
+
+The clone contains the **full history**, all three commits,
+not merely the latest files. A clone copies the entire `.git`
+directory, so it is a complete, independent repository. It
+also comes with `origin` already configured to point at the
+repository it was cloned from, so `git push` and `git pull`
+work immediately.
+
+**Problem 6.**
+
+```bash
+cd ~/hw4-repo
+gh issue create \
+  --title 'Add unit tests for the summary function' \
+  --body 'The summary function has no tests; add coverage.'
+#> https://github.com/rgt47/hw4-repo/issues/1
+gh issue list
+#> #1  Add unit tests for the summary function   now
+gh issue view 1
+#> Add unit tests for the summary function #1
+#> Open - rgt47 opened about 1 minute ago
+gh issue close 1 --comment 'Tests added in a later commit.'
+#> ✓ Closed issue #1 (Add unit tests for the summary function)
+gh issue list
+#> No open issues in rgt47/hw4-repo
+```
+
+Creating an issue returns its URL and number; listing,
+viewing, and closing all reference that number. After
+closing, `gh issue list` shows no open issues, because by
+default it lists only open ones. (Add `--state closed` to see
+closed issues.)
+
+**Problem 7.**
+
+```bash
+# In the original repository:
+cd ~/hw4-repo
+echo 'z <- rnorm(100)' >> sim.R
+git commit -a -m 'Add third simulated variable'
+git push
+
+# In the clone:
+cd /tmp/hw4-clone
+git fetch
+git log --oneline
+#> b2c3d4e Add second simulated variable
+#> a1b2c3d Add simulation script
+#> 9f8e7d6 Add README
+```
+
+After `git fetch`, the clone's own `main` does **not** yet
+show the new commit; fetch downloaded it into `origin/main`
+but left the local branch untouched. Advancing the local
+branch requires a merge:
+
+```bash
+git merge origin/main
+#> Updating b2c3d4e..c3d4e5f
+#> Fast-forward
+git log --oneline
+#> c3d4e5f Add third simulated variable
+#> b2c3d4e Add second simulated variable
+#> ...
+```
+
+`git pull` would have done the fetch and the merge in one
+step. In short, fetch retrieves commits without changing your
+branch; pull retrieves and then merges them in.
+
+**Problem 8.**
+
+```bash
+mkdir hw4-manual
+cd hw4-manual
+git init
+echo '# Manual' > README.md
+git add README.md
+git commit -m 'Add README'
+gh repo create hw4-manual --public
+#> ✓ Created repository rgt47/hw4-manual on GitHub
+git remote add origin https://github.com/rgt47/hw4-manual.git
+git push -u origin main
+#> branch 'main' set up to track 'origin/main'.
+#>  * [new branch]      main -> main
+git remote -v
+#> origin  https://github.com/rgt47/hw4-manual.git (fetch)
+#> origin  https://github.com/rgt47/hw4-manual.git (push)
+```
+
+Without `--source`, `gh repo create` made an empty GitHub
+repository and did not touch your local one, so you supplied
+the two steps `gh` normally automates: `git remote add`
+registered the URL under the name `origin`, and `git push -u`
+sent `main` and recorded `origin/main` as its upstream. The
+`-u` flag established the tracking relationship; verify it
+with `git branch -vv`, whose output annotates `main` with
+`[origin/main]`, or with `git status`, which now reports your
+branch as up to date with `origin/main`.
+
+## What's next
+
+Day 5 turns publishing into collaboration. You will learn the
+fork-and-pull-request workflow that lets several people
+contribute to one repository without overwriting each other,
+opening and reviewing pull requests with `gh pr`, and
+resolving conflicts that arise when two contributors change
+the same lines remotely. You will also see Git through the
+RStudio IDE and revisit `.gitignore` for R projects, `renv`,
+and data. Keep the `baseline-summary` repository you
+published today; Day 5 collaborates on it.

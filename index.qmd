@@ -1,0 +1,64 @@
+# Welcome {.unnumbered .unlisted}
+
+This is the online version of **Git and GitHub for
+Biostatistics: A One-Week Boot Camp** by The rgtlab
+Curriculum Project, a short preparatory course for incoming
+graduate students in biostatistics and adjacent programmes.
+
+The book covers everything an entering masters-level
+biostatistician needs to place their analytical work under
+version control on day one of the academic programme:
+installing and configuring Git, recording a project's
+history in commits, navigating and undoing that history,
+branching and merging, publishing to GitHub, and
+collaborating through pull requests. It is designed for
+**five consecutive days** of work: one hour of lecture
+content each day, two hours of homework, no examinations.
+
+The organising principle is that version control is a
+research-integrity tool, not a software-engineering
+nicety. A biostatistician who cannot say which version of
+a script produced a published table has a reproducibility
+problem, not a tooling preference. Every chapter opens with
+a data-analysis problem, develops the Git mechanism that
+addresses it, and returns to the problem to judge what the
+mechanism did and did not solve.
+
+The boot camp is a preparatory companion to a five-volume
+graduate sequence:
+
+- **R for Biostatistics: A One-Week Boot Camp**
+  (<https://r-bootcamp.rgtlab.org>) — the parallel
+  preparatory volume for R.
+- [*Biostatistics Practicum*](https://rgtlab.org/practicum)
+  — workflow infrastructure (Git in depth, Docker, renv,
+  Quarto, CDISC) that builds directly on this boot camp.
+- [*Statistical Computing in the Age of AI*](https://scai.rgtlab.org)
+  — introductory methods (linear models, GLM, mixed
+  models, survival, Bayesian, bootstrap, simulation).
+- [*Advanced Statistical Computing in the Age of AI*](https://scai-advanced.rgtlab.org)
+  — advanced computing (numerical stability, MCMC, HPC,
+  high-dimensional methods, ML, software engineering).
+- [*Applied Generative AI for Health Sciences Research*](https://applied-genai.rgtlab.org)
+  — capability classes, RAG, agents, evaluation,
+  regulation, deployment.
+
+Together with *R for Biostatistics*, this volume forms the
+two-part pre-program preparation: one week of R, one week
+of version control. A student who completes both arrives at
+the *Practicum* ready to work in a reproducible pipeline
+from the first session.
+
+See the [Preface](preface.qmd) for the design rationale
+and the [Conventions](conventions.qmd) page for visual
+cues.
+
+## License
+
+This book is licensed under
+[Creative Commons
+Attribution-NonCommercial-NoDerivatives 4.0 International](https://creativecommons.org/licenses/by-nc-nd/4.0/).
+
+Code samples are licensed under
+[Creative Commons CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/),
+i.e. public domain.

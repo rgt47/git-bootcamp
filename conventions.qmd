@@ -1,0 +1,113 @@
+# Conventions {.unnumbered}
+
+This page summarises the visual conventions used throughout
+the book.
+
+## Commands and output
+
+This book is command-line first. Shell commands appear in
+syntax-highlighted blocks. A command the reader types is
+shown after a `$` prompt; the prompt itself is not typed.
+Output appears on the following lines, without a prompt:
+
+```bash
+$ git --version
+git version 2.45.2
+```
+
+When a sequence of commands is shown without output, the
+prompts are omitted for readability:
+
+```bash
+git add analysis.R
+git commit -m 'Add baseline analysis'
+```
+
+Inline commands, file names, and Git objects are set in
+`monospace`. Git subcommands are named in full
+(`git commit`, not merely `commit`) so that they are
+unambiguous. GitHub operations use the official `gh`
+command-line tool, shown the same way:
+
+```bash
+$ gh repo view --web
+Opening github.com/rgt47/trial-analysis in your browser.
+```
+
+Placeholders that the reader must replace with their own
+values are written in angle brackets, for example
+`git clone <url>` or `gh repo create <name>`. The angle
+brackets are not typed.
+
+## Callouts
+
+Three callout types appear:
+
+::: {.callout-tip}
+## Tip
+
+A small practical recommendation.
+:::
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: example
+
+A short question testing comprehension of the just-read
+material. Click to expand the answer.
+:::
+
+::: {.callout-warning}
+## Warning
+
+A pitfall the reader may otherwise hit, most often an
+operation that discards work irrecoverably.
+:::
+
+## Diagrams of history
+
+Commit history is drawn as a left-to-right graph, with each
+node a commit labelled by a short hash and time flowing
+rightward. Branch and tag names are pointers attached to
+commits:
+
+```text
+        main
+         |
+A -- B -- C
+```
+
+Here `C` is the most recent commit and `main` points to it.
+These diagrams are conceptual; the real hashes are the
+forty-character identifiers Git assigns.
+
+## Cross-references
+
+Within this book, sections are referenced by their Quarto
+label (`@sec-day1`, `@sec-merge-conflicts`). These resolve
+to clickable links in HTML and section numbers in PDF.
+
+References to the companion volumes *R for Biostatistics*
+and *Biostatistics Practicum* use **prose pointers** rather
+than Quarto cross-references, because cross-references do
+not resolve across separate books. For example: 'see the
+Docker chapter of the companion *Biostatistics Practicum*
+volume'.
+
+## Chapter structure
+
+Every content chapter follows the same five-section
+template:
+
+1. **Learning objectives.** What you will be able to do
+   after the day.
+2. **Lecture.** The substantive content, with commands to
+   run in your own terminal as you read.
+3. **Worked example.** A small but realistic biostatistical
+   scenario that uses the day's content end to end.
+4. **Homework.** Problems organised from easier to harder.
+5. **Solutions.** Worked solutions to all homework
+   problems. Read only after attempting the problem.
+
+Each chapter closes with a short **What's next** pointer.
+The pattern repeats deliberately; by the third chapter you
+know where to find each component.

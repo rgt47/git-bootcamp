@@ -1,0 +1,957 @@
+# Day 2: Recording History: Commits, Diffs, and Undoing {#sec-day2}
+
+## Learning objectives
+
+By the end of this day you should be able to:
+
+- Compare versions of your files with `git diff`, both
+  before and after staging.
+- Compare any two commits, and inspect a single commit in
+  full with `git show`.
+- Read history in depth with `git log` and its most useful
+  options, including the history of a single file.
+- Refer to any commit by its hash or by a relative name such
+  as `HEAD~1`.
+- Write a commit that records a single conceptual change,
+  with a message that explains why the change was made.
+- Undo changes safely, distinguishing the operations that
+  preserve your work from the few that destroy it.
+
+## Lecture
+
+Day 1 built the add-commit habit: edit, stage, commit,
+repeat. Day 2 turns to the questions that the habit makes
+possible. What exactly changed between two versions? What
+did a past commit contain? How do I write a commit worth
+committing? And, above all, how do I undo a mistake without
+losing work? The last question is the heart of the day, and
+the reason version control repays the effort of learning it.
+
+### Comparing versions with git diff
+
+A commit records a snapshot, but the useful unit of thought
+is usually the difference between two snapshots. `git diff`
+computes that difference and prints it as a set of lines
+added and removed.
+
+With no arguments, `git diff` compares your working
+directory against the staging area, that is, it shows the
+changes you have made but not yet staged. Suppose
+`baseline.R` computes a mean age, and you edit the line to
+add a median:
+
+```bash
+$ git diff
+diff --git a/baseline.R b/baseline.R
+index 3a1b2c3..4d5e6f7 100644
+--- a/baseline.R
++++ b/baseline.R
+@@ -2,3 +2,4 @@ dat <- read.csv("data-raw/enrollment.csv")
+ n_total <- nrow(dat)
+ mean_age <- mean(dat$age, na.rm = TRUE)
++med_age <- median(dat$age, na.rm = TRUE)
+```
+
+Read this from the bottom. A line beginning with `+` was
+added; a line beginning with `-` was removed; a line with a
+leading space is unchanged context, shown so that you can
+see where the change sits. The `@@ -2,3 +2,4 @@` marker is a
+**hunk header**: it says the change begins near line 2 and
+reports how many lines the region spans before and after.
+The two lines beginning `---` and `+++` name the old and new
+versions of the file. For everyday reading you can ignore
+everything above the hunk header and focus on the `+` and
+`-` lines.
+
+Once you stage a change, plain `git diff` no longer shows
+it, because there is no longer any difference between the
+working directory and the staging area. To see what you have
+staged, that is, what your next commit would record, use
+`git diff --staged`:
+
+```bash
+$ git add baseline.R
+$ git diff
+$ git diff --staged
+diff --git a/baseline.R b/baseline.R
+index 3a1b2c3..4d5e6f7 100644
+--- a/baseline.R
++++ b/baseline.R
+@@ -2,3 +2,4 @@ dat <- read.csv("data-raw/enrollment.csv")
+ n_total <- nrow(dat)
+ mean_age <- mean(dat$age, na.rm = TRUE)
++med_age <- median(dat$age, na.rm = TRUE)
+```
+
+The two forms answer two different questions. `git diff`
+asks 'what have I changed but not yet staged?'. `git diff
+--staged` asks 'what am I about to commit?'. Reading the
+staged diff immediately before every commit is the single
+most effective habit for keeping mistakes out of your
+history. (`--cached` is an older synonym for `--staged`; the
+two are identical.)
+
+::: {.callout-tip}
+## Tip
+
+Make `git diff --staged` a reflex. Run it in the moment
+between `git add` and `git commit`, every time. It is your
+last chance to notice that you staged a debugging line, a
+hard-coded path, or a stray data file before it becomes part
+of the permanent record.
+:::
+
+### Comparing commits
+
+`git diff` also compares two commits when you name them.
+Give it two hashes and it reports what changed from the
+first to the second:
+
+```bash
+$ git diff 7e8f9a0 9b0c1d2
+```
+
+More often you compare against the present using relative
+names, described in full below. `git diff HEAD~1 HEAD` shows
+what the most recent commit changed:
+
+```bash
+$ git diff HEAD~1 HEAD
+diff --git a/baseline.R b/baseline.R
+index 4d5e6f7..5e6f7a8 100644
+--- a/baseline.R
++++ b/baseline.R
+@@ -3,3 +3,4 @@ n_total <- nrow(dat)
+ mean_age <- mean(dat$age, na.rm = TRUE)
+ med_age <- median(dat$age, na.rm = TRUE)
++sex_table <- table(dat$sex)
+```
+
+And `git diff HEAD` compares your working directory against
+the most recent commit, ignoring the staging area entirely,
+which answers 'what has changed since my last commit,
+staged or not?'.
+
+### Inspecting a single commit with git show
+
+Where `git diff` compares two states, `git show` displays
+one commit in full: its metadata (author, date, message)
+followed by the diff it introduced. It is the natural way to
+answer 'what did this commit do?':
+
+```bash
+$ git show 9b0c1d2
+commit 9b0c1d2f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d
+Author: Jane Investigator <jane@university.edu>
+Date:   Sat Jul 25 10:20:11 2026 -0700
+
+    Add sex distribution table
+
+diff --git a/baseline.R b/baseline.R
+index 4d5e6f7..5e6f7a8 100644
+--- a/baseline.R
++++ b/baseline.R
+@@ -3,3 +3,4 @@ n_total <- nrow(dat)
+ mean_age <- mean(dat$age, na.rm = TRUE)
+ med_age <- median(dat$age, na.rm = TRUE)
++sex_table <- table(dat$sex)
+```
+
+`git show` with no argument shows `HEAD`, the most recent
+commit. Naming a commit shows that one. This is how you
+recover the reasoning behind a change months later: the
+message tells you why, and the diff tells you exactly what.
+
+### Reading history in depth
+
+Day 1 introduced `git log` and `git log --oneline`. Several
+options turn the log from a list into an investigative tool.
+
+`--stat` appends a per-file summary of how many lines each
+commit changed:
+
+```bash
+$ git log --oneline --stat
+9b0c1d2 Add sex distribution table
+ baseline.R | 1 +
+ 1 file changed, 1 insertion(+)
+7e8f9a0 Add total count and mean age
+ baseline.R | 3 +++
+ 1 file changed, 3 insertions(+)
+```
+
+`-p` (for 'patch') shows the full diff introduced by each
+commit, turning the log into a complete annotated history of
+every change. `-n <k>` limits the output to the most recent
+`k` commits, which pairs well with `-p`:
+
+```bash
+$ git log -p -n 1
+commit 9b0c1d2f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d
+Author: Jane Investigator <jane@university.edu>
+Date:   Sat Jul 25 10:20:11 2026 -0700
+
+    Add sex distribution table
+
+diff --git a/baseline.R b/baseline.R
+@@ -3,3 +3,4 @@ n_total <- nrow(dat)
+ mean_age <- mean(dat$age, na.rm = TRUE)
+ med_age <- median(dat$age, na.rm = TRUE)
++sex_table <- table(dat$sex)
+```
+
+`--graph` draws the branch structure to the left of the
+log. With a single line of history it is unremarkable, but
+once Day 3 introduces branches it becomes essential:
+
+```bash
+$ git log --oneline --graph
+* 9b0c1d2 Add sex distribution table
+* 7e8f9a0 Add total count and mean age
+* a1b2c3d Add gitignore before any data enters repo
+```
+
+To see the history of a single file, and nothing else, pass
+the file after a `--` separator. The `--` tells Git that
+what follows is a path, not a commit name, which removes any
+ambiguity:
+
+```bash
+$ git log --oneline -- baseline.R
+9b0c1d2 Add sex distribution table
+7e8f9a0 Add total count and mean age
+```
+
+Note that the `.gitignore` commit does not appear, because
+it never touched `baseline.R`. Two further filters are worth
+knowing. `--author` restricts the log to one person, useful
+once you collaborate:
+
+```bash
+$ git log --oneline --author='Jane'
+```
+
+And `--since` (with its partner `--until`) restricts by
+date, accepting both calendar dates and human phrases:
+
+```bash
+$ git log --oneline --since='2026-07-01'
+$ git log --oneline --since='2 weeks ago'
+```
+
+### Referring to commits
+
+Every command in this chapter takes a commit as an argument.
+There are three ways to name one.
+
+The **full hash** is the forty-character identifier Git
+assigns, for example
+`9b0c1d2f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d`. A **short
+hash**, the first seven or so characters (`9b0c1d2`), is
+accepted anywhere the full hash is, as long as it is
+unambiguous within the repository. This is why
+`git log --oneline` prints short hashes: they are enough to
+name a commit.
+
+`HEAD` names the commit you are currently on, almost always
+the newest on your branch. From `HEAD` you count backwards
+with a tilde: `HEAD~1` is the commit before `HEAD`, `HEAD~2`
+the one before that, and so on. These **relative
+references** save you from copying hashes for recent
+history:
+
+```text
+HEAD~2    HEAD~1    HEAD
+   |         |        |
+   A ------- B ------ C
+```
+
+Here `C` is the newest commit, `HEAD` points to it, `HEAD~1`
+is `B`, and `HEAD~2` is `A`. `git show HEAD~1`, `git diff
+HEAD~2 HEAD`, and `git log HEAD~3` all use this. The
+relative form is the one you will reach for most, because
+undoing usually concerns the last commit or two.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: HEAD~1 versus the short hash
+
+You want to see what your most recent commit changed. Is
+there any difference between `git show HEAD` and
+`git show <short-hash>` if the short hash is the one printed
+next to that commit in `git log --oneline`?
+
+No difference at all. Both name the same commit, so
+`git show` prints identical output. The distinction is
+convenience, not meaning: `HEAD` is a moving pointer that
+always refers to wherever you currently are, while the hash
+is a fixed name for one specific snapshot. If you make a new
+commit, `HEAD` moves to it and `git show HEAD` shows the new
+one, whereas `git show <hash>` still shows the original. Use
+relative names for 'the last commit' and hashes when you
+mean one particular commit regardless of where you stand.
+:::
+
+### The anatomy of a good commit
+
+A commit is a unit of history, and its usefulness depends on
+two disciplines: what you put in it, and what you say about
+it.
+
+**One conceptual change per commit.** A commit should record
+a single, self-contained change that can be described in one
+short sentence. If your commit message needs the word 'and',
+that is a signal you have bundled two changes that belong in
+two commits. 'Add median age and fix data path' should be
+two commits: one that adds the median, one that fixes the
+path. The payoff is concrete. When a later diff reveals a
+bug, a history of small, single-purpose commits lets you
+find and undo exactly the change that caused it, without
+disturbing the unrelated work that happened to travel with
+it. The staging area (Day 1) is the tool that makes this
+possible: stage only the lines belonging to one change,
+commit them, then stage and commit the next.
+
+**A message that earns its place.** The conventions for a
+commit message are stable across the profession:
+
+- A **subject line** in the imperative mood, under about 50
+  characters: 'Add median age to baseline summary', not
+  'Added median age' or 'Adds median age'. The imperative
+  reads as an instruction the commit carries out, which is
+  the convention Git itself uses in its automatic messages.
+- A **blank line** separating subject from body.
+- A **body** that explains why the change was made, wrapped
+  at about 72 characters. The diff already shows what
+  changed; the body's job is the reasoning that the diff
+  cannot express.
+
+Contrast a poor message with a good one. Poor:
+
+```text
+fixes
+```
+
+This tells a future reader nothing. Fixes what? Why? Good:
+
+```text
+Use na.rm in mean age to exclude missing ages
+
+Fourteen subjects have a missing age at baseline. Without
+na.rm the mean was NA, which propagated into Table 1. This
+restricts the mean to observed ages, consistent with the
+handling of missingness in the statistical analysis plan.
+```
+
+A reader, including you in six months, can now reconstruct
+not just what changed but the analytical judgement behind
+it. This is what makes a commit history function as a lab
+notebook rather than a mechanical changelog.
+
+To write a multi-line message, run `git commit` with no `-m`
+flag. Git opens the editor you configured on Day 1, with a
+template you fill in:
+
+```bash
+$ git commit
+```
+
+Type the subject on the first line, leave the second blank,
+write the body, then save and close the editor. Git records
+the whole message. Lines beginning with `#` are comments and
+are discarded. The `-m` form remains fine for short,
+subject-only commits; reach for the editor when the change
+deserves an explanation.
+
+### Undoing changes safely
+
+The remainder of the lecture is the most important material
+of the week. Everyone makes mistakes in an analysis; the
+value of version control is that mistakes become recoverable.
+The essential skill is knowing which undo operations are
+safe (they preserve your work) and which are destructive
+(they discard it). Learn the distinction before you need it.
+
+We proceed from the safest operations to the most dangerous.
+
+**Discarding uncommitted changes: `git restore <file>`.**
+Suppose you have edited `baseline.R`, not yet staged or
+committed the edit, and you decide the edit was wrong.
+`git restore` overwrites the working-directory copy with the
+version from the last commit:
+
+```bash
+$ git restore baseline.R
+```
+
+This is destructive to *uncommitted* work. The edit you
+discarded was never committed, so Git has no record of it;
+it is gone. Use `git restore` only when you are certain the
+uncommitted changes should be thrown away.
+
+::: {.callout-warning}
+## Warning
+
+`git restore <file>` permanently discards uncommitted
+changes to that file. There is no undo, because the discarded
+work was never recorded in any commit. Before running it,
+confirm with `git diff` that the changes it will erase are
+truly unwanted. This command is the most common cause of
+genuinely lost work among beginners, precisely because it
+looks innocuous.
+:::
+
+**Unstaging without losing work: `git restore --staged
+<file>`.** If you have staged a change with `git add` but
+want to remove it from the staging area, `--staged` unstages
+it while leaving your working-directory edit untouched:
+
+```bash
+$ git restore --staged baseline.R
+```
+
+This is completely safe: it moves the change from 'staged'
+back to 'modified', and your edits remain in the file. It is
+the exact inverse of `git add`. (Older Git tutorials use
+`git reset HEAD <file>` for this; `git restore --staged` is
+the modern, clearer spelling.)
+
+**Fixing the most recent commit: `git commit --amend`.**
+Perhaps you committed with a typo in the message, or you
+committed and then noticed you left a line out. `--amend`
+replaces the most recent commit with a new one:
+
+```bash
+$ git commit --amend -m 'Add median age to baseline summary'
+```
+
+To amend the *content* rather than the message, stage the
+additional change first, then amend; the staged change folds
+into the previous commit:
+
+```bash
+$ git add baseline.R
+$ git commit --amend --no-edit
+```
+
+`--no-edit` keeps the existing message. Amending is
+convenient, but it does not edit the commit in place: it
+creates a replacement commit with a new hash and discards the
+old one. That rewriting is harmless while the commit lives
+only on your machine.
+
+::: {.callout-warning}
+## Warning
+
+Never amend, or otherwise rewrite, a commit you have already
+shared, that is, pushed to GitHub or handed to a
+collaborator. Amending replaces the commit with one bearing a
+new hash; collaborators who based work on the original are
+left with a divergent history that is painful to reconcile.
+The rule is simple: amend freely before you push, never
+after. Pushing arrives on Day 4; until then every commit is
+private and safe to amend.
+:::
+
+**Undoing a past commit safely: `git revert <hash>`.** When
+a commit is already shared, or simply is not the most recent
+one, the safe way to undo it is not to erase it but to add a
+new commit that reverses its effect. `git revert` does
+exactly this:
+
+```bash
+$ git revert 9b0c1d2
+```
+
+Git computes the inverse of commit `9b0c1d2` (every line it
+added is removed, every line it removed is added), applies
+that inverse as a new commit, and opens the editor for its
+message. The original commit remains in the history; the
+revert sits after it, cancelling it. Because `git revert`
+only adds to history and never rewrites it, it is safe on
+shared branches, and it is the preferred way to undo
+anything others may have seen.
+
+```text
+A -- B -- C -- C'
+          ^     ^
+        commit  revert of C
+        to undo (a new commit)
+```
+
+**Moving the branch pointer: `git reset`.** `git reset`
+moves the current branch to point at an earlier commit,
+effectively removing the commits after it from the branch.
+It comes in three forms that differ in what they do to your
+staging area and working directory. Suppose your history is
+`A -- B -- C` and you reset to `B` (that is, to `HEAD~1`).
+
+- `git reset --soft HEAD~1` moves the branch to `B` but
+  leaves the staging area and working directory untouched.
+  The changes from `C` are still staged, ready to recommit.
+  This is how you 'uncommit' the last commit while keeping
+  its changes staged, for example to split it or reword it.
+- `git reset --mixed HEAD~1`, the default when no flag is
+  given, moves the branch to `B` and unstages the changes
+  from `C`, but leaves them in your working directory. The
+  changes from `C` are now unstaged edits, as if you had
+  never run `git add`.
+- `git reset --hard HEAD~1` moves the branch to `B` and
+  discards the changes from `C` from both the staging area
+  and the working directory. The work in `C` is thrown away.
+
+The three forms form a ladder from safe to dangerous.
+`--soft` and `--mixed` preserve your changes; they only move
+the boundaries between the three areas. `--hard` deletes
+uncommitted work, and it does so silently.
+
+::: {.callout-warning}
+## Warning
+
+`git reset --hard` discards all uncommitted changes in the
+files it touches, with no confirmation and no easy recovery.
+It is the most dangerous command in everyday Git. Reach for
+`--soft` or `--mixed` (or `git revert`) unless you are
+certain you want the work destroyed. When in doubt, commit
+your current state first: a commit is cheap, and a committed
+change is almost always recoverable even after a `--hard`
+reset, whereas an uncommitted one is not.
+:::
+
+**What is and is not recoverable.** The reassuring
+generalisation is that Git rarely loses committed work. A
+commit that seems to have vanished after an amend or a reset
+usually still exists in Git's internal records and can be
+retrieved; the tools for that recovery (notably the reflog)
+belong to the companion *Biostatistics Practicum* volume.
+The genuine exception is work that was never committed:
+uncommitted changes destroyed by `git restore` or
+`git reset --hard` leave no trace, because Git never recorded
+them. This asymmetry motivates the week's central habit.
+Commit early and often. A committed mistake is a recoverable
+mistake.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: revert versus reset
+
+You pushed a commit to GitHub yesterday (Day 4 will teach
+pushing; assume for now it means others can see it). Today
+you realise that commit introduced a coding error. Should
+you use `git reset` to remove it or `git revert` to undo it?
+
+Use `git revert`. Because the commit has been shared,
+rewriting history with `git reset` would move your branch
+backwards and leave collaborators' copies pointing at a
+commit yours no longer contains, producing a divergent
+history that is troublesome to reconcile. `git revert`
+instead adds a new commit that cancels the faulty one,
+leaving the shared history intact and simply extending it
+with the correction. The governing principle: rewrite
+private history freely, but only ever add to shared history.
+:::
+
+## Worked example: catching and fixing an analytical mistake
+
+We continue the `baseline-summary` repository from Day 1.
+Its history stands at three commits:
+
+```bash
+$ cd baseline-summary
+$ git log --oneline
+9b0c1d2 Add sex distribution table
+7e8f9a0 Add total count and mean age
+a1b2c3d Add gitignore before any data enters repo
+```
+
+You are asked to add the mean baseline HbA1c to the summary.
+You edit `baseline.R` and add a line, but in haste you omit
+`na.rm = TRUE`, even though several subjects have a missing
+HbA1c. Before committing, you inspect the change:
+
+```bash
+$ git diff
+diff --git a/baseline.R b/baseline.R
+index 5e6f7a8..6f7a8b9 100644
+--- a/baseline.R
++++ b/baseline.R
+@@ -4,3 +4,4 @@ mean_age <- mean(dat$age, na.rm = TRUE)
+ med_age <- median(dat$age, na.rm = TRUE)
+ sex_table <- table(dat$sex)
++mean_hba1c <- mean(dat$hba1c)
+```
+
+The diff looks plausible at a glance, so you stage and
+commit it:
+
+```bash
+$ git add baseline.R
+$ git commit -m 'Add mean baseline HbA1c'
+[main 1a2b3c4] Add mean baseline HbA1c
+ 1 file changed, 1 insertion(+)
+```
+
+Running the script, you find `mean_hba1c` is `NA`. You
+inspect the offending commit to confirm the cause:
+
+```bash
+$ git show HEAD
+commit 1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b
+Author: Jane Investigator <jane@university.edu>
+Date:   Sat Jul 25 11:02:44 2026 -0700
+
+    Add mean baseline HbA1c
+
+diff --git a/baseline.R b/baseline.R
+@@ -4,3 +4,4 @@ mean_age <- mean(dat$age, na.rm = TRUE)
+ med_age <- median(dat$age, na.rm = TRUE)
+ sex_table <- table(dat$sex)
++mean_hba1c <- mean(dat$hba1c)
+```
+
+The diff confirms it: the new line lacks `na.rm = TRUE`, so
+a single missing HbA1c forces the mean to `NA`. There are
+two ways to fix this, and which you choose depends on whether
+the faulty commit has been shared.
+
+**Fix one: amend, because the commit is still private.** You
+have not yet pushed anything (GitHub is Day 4), so the commit
+lives only on your machine and you may rewrite it. Correct
+the line, stage it, and fold it into the previous commit:
+
+```bash
+$ git restore baseline.R
+```
+
+Wait: that would discard the whole line, since the line was
+committed but you want to keep an edited version. Instead,
+edit the file to add `na.rm = TRUE`, confirm the fix, then
+amend:
+
+```bash
+$ git diff
+diff --git a/baseline.R b/baseline.R
+@@ -4,3 +4,4 @@ mean_age <- mean(dat$age, na.rm = TRUE)
+ med_age <- median(dat$age, na.rm = TRUE)
+ sex_table <- table(dat$sex)
+-mean_hba1c <- mean(dat$hba1c)
++mean_hba1c <- mean(dat$hba1c, na.rm = TRUE)
+$ git add baseline.R
+$ git commit --amend --no-edit
+[main 2b3c4d5] Add mean baseline HbA1c
+ 1 file changed, 1 insertion(+)
+```
+
+The history now contains a single, correct commit for the
+HbA1c change; the flawed version is gone, replaced by
+`2b3c4d5`:
+
+```bash
+$ git log --oneline
+2b3c4d5 Add mean baseline HbA1c
+9b0c1d2 Add sex distribution table
+7e8f9a0 Add total count and mean age
+a1b2c3d Add gitignore before any data enters repo
+```
+
+**Fix two: revert, if the commit had already been shared.**
+Suppose instead that you had pushed commit `1a2b3c4` to a
+shared repository before noticing the error. Amending is now
+off the table. You instead add a new commit that reverses
+the faulty one:
+
+```bash
+$ git revert 1a2b3c4
+[main 3c4d5e6] Revert "Add mean baseline HbA1c"
+ 1 file changed, 1 deletion(-)
+```
+
+This removes the faulty line by adding a commit, then you
+add the corrected line in a further commit:
+
+```bash
+$ echo 'mean_hba1c <- mean(dat$hba1c, na.rm = TRUE)' >> baseline.R
+$ git add baseline.R
+$ git commit -m 'Add mean baseline HbA1c with na.rm'
+[main 4d5e6f7] Add mean baseline HbA1c with na.rm
+```
+
+The history now preserves the full record, including the
+mistake and its correction, which is exactly what you want
+on a branch others rely on:
+
+```bash
+$ git log --oneline
+4d5e6f7 Add mean baseline HbA1c with na.rm
+3c4d5e6 Revert "Add mean baseline HbA1c"
+1a2b3c4 Add mean baseline HbA1c
+9b0c1d2 Add sex distribution table
+7e8f9a0 Add total count and mean age
+a1b2c3d Add gitignore before any data enters repo
+```
+
+The two fixes embody the chapter's governing rule. Rewrite
+private history to keep it clean; add to shared history to
+keep it honest. The mistake, a forgotten `na.rm`, is the
+kind of small analytical slip that version control turns from
+a silent corruption of your results into a documented,
+correctable event.
+
+## Homework
+
+Attempt each problem in your own terminal before checking
+the solution. Continue in a scratch copy of the
+`baseline-summary` repository, or create a fresh repository
+with a few commits to experiment on. Nothing here needs to
+be shared, so you may amend and reset freely.
+
+1. **Staged versus unstaged diffs.** In a repository with at
+   least one commit, edit a tracked file. Run `git diff`,
+   then `git add` the file, then run `git diff` again,
+   followed by `git diff --staged`. Explain what each of the
+   three `git diff` commands shows and why the second one
+   printed nothing.
+
+2. **Inspect a commit.** Using `git log --oneline` to find a
+   hash, run `git show <hash>` on one of your commits.
+   Identify in the output the author, the date, the message,
+   and the diff. Then run `git show HEAD` and confirm it
+   shows your most recent commit.
+
+3. **History of one file.** In a repository where at least
+   two different files have been committed, run
+   `git log --oneline` and then
+   `git log --oneline -- <one-file>`. Explain the difference
+   between the two outputs and why a commit might appear in
+   the first but not the second.
+
+4. **Relative references.** Without copying any hash, use
+   relative references to (a) show the diff introduced by the
+   most recent commit, and (b) show the diff between the
+   commit two before `HEAD` and `HEAD`. Write the two
+   commands you used.
+
+5. **Unstage safely.** Edit a tracked file and stage it with
+   `git add`. Now unstage it without losing your edit. Which
+   command did you use, and how did you confirm with
+   `git status` that the edit survived in the working
+   directory?
+
+6. **Amend a message.** Make a commit with a deliberately
+   poor message such as `stuff`. Then, before doing anything
+   else, replace that message with a proper imperative
+   subject line. Which command did you use, and what happened
+   to the commit's hash? Confirm the new message with
+   `git log --oneline`.
+
+7. **Revert versus amend.** Make a commit that introduces an
+   obvious error into a file, such as a line that would not
+   run. Undo it two different ways in two separate
+   experiments: first by amending, then (after recreating the
+   bad commit) by reverting. Compare the resulting
+   `git log --oneline` in each case. Which one leaves a
+   record that the error ever existed?
+
+8. **The three resets.** Starting from a clean repository
+   with history `A -- B -- C`, predict, before running
+   anything, what `git status` will show after each of
+   `git reset --soft HEAD~1`, `git reset --mixed HEAD~1`, and
+   `git reset --hard HEAD~1`. Then test each on a fresh copy
+   and reconcile your prediction with the result. State
+   plainly which of the three you should never run with
+   uncommitted work you care about, and why.
+
+## Solutions
+
+**Problem 1.**
+
+```bash
+echo 'extra_line <- 1' >> baseline.R
+git diff
+#> ... shows the added line as a '+' line ...
+git add baseline.R
+git diff
+#> (prints nothing)
+git diff --staged
+#> ... shows the added line as a '+' line ...
+```
+
+The first `git diff` compares the working directory against
+the staging area and shows your unstaged edit. After
+`git add`, the edit is in the staging area, so the working
+directory and staging area now match and plain `git diff`
+prints nothing. `git diff --staged` compares the staging area
+against the last commit and shows the change you are about to
+commit. The three commands answer, respectively, 'what is
+unstaged?', 'what is unstaged?' (now nothing), and 'what is
+staged?'.
+
+**Problem 2.**
+
+```bash
+git log --oneline
+#> 9b0c1d2 Add sex distribution table
+#> 7e8f9a0 Add total count and mean age
+git show 7e8f9a0
+#> commit 7e8f9a0...
+#> Author: Jane Investigator <jane@university.edu>
+#> Date:   ...
+#>
+#>     Add total count and mean age
+#>
+#>     ... diff follows ...
+git show HEAD
+```
+
+The `git show <hash>` output has four parts: the `commit`
+line with the full hash, the `Author` line, the `Date` line,
+the indented message, and then the diff the commit
+introduced. `git show HEAD` shows whichever commit is newest
+on the current branch, which here is `9b0c1d2`.
+
+**Problem 3.**
+
+```bash
+git log --oneline
+#> 9b0c1d2 Add sex distribution table
+#> 7e8f9a0 Add total count and mean age
+#> a1b2c3d Add gitignore before any data enters repo
+git log --oneline -- baseline.R
+#> 9b0c1d2 Add sex distribution table
+#> 7e8f9a0 Add total count and mean age
+```
+
+The unfiltered log lists every commit. The filtered log
+lists only commits that changed `baseline.R`. The commit
+`a1b2c3d` created `.gitignore` and never touched
+`baseline.R`, so it is absent from the filtered output. The
+`--` separates the path from any commit names, telling Git
+that `baseline.R` is a file to filter on, not a revision.
+
+**Problem 4.**
+
+```bash
+git diff HEAD~1 HEAD
+git diff HEAD~2 HEAD
+```
+
+(a) `git diff HEAD~1 HEAD` compares the commit before the
+most recent against the most recent, which is precisely the
+change the most recent commit introduced. (You could also
+use `git show HEAD`.) (b) `git diff HEAD~2 HEAD` compares the
+commit two back against the current one, showing the combined
+effect of the last two commits. No hashes were typed;
+relative references sufficed.
+
+**Problem 5.**
+
+```bash
+echo 'x <- 2' >> baseline.R
+git add baseline.R
+git restore --staged baseline.R
+git status
+#> On branch main
+#> Changes not staged for commit:
+#>   (use "git add <file>..." to update what will be committed)
+#>   (use "git restore <file>..." to discard changes)
+#>	modified:   baseline.R
+```
+
+`git restore --staged baseline.R` unstaged the file. The edit
+survived: `git status` reports `baseline.R` under 'Changes
+not staged for commit', that is, as a modified but unstaged
+file, exactly the state it was in before `git add`. The
+command is the inverse of staging and touches only the
+staging area, never the working directory, so it is safe.
+
+**Problem 6.**
+
+```bash
+echo 'y <- 3' >> baseline.R
+git add baseline.R
+git commit -m 'stuff'
+#> [main aaa1111] stuff
+git commit --amend -m 'Add helper constant y'
+#> [main bbb2222] Add helper constant y
+git log --oneline
+#> bbb2222 Add helper constant y
+#> ...
+```
+
+`git commit --amend -m '<message>'` replaced the most recent
+commit. The hash changed, from `aaa1111` to `bbb2222`,
+because amending does not edit the old commit in place; it
+creates a new commit with the corrected message and discards
+the original. The old message `stuff` is gone from the
+history. This rewriting is safe only because the commit was
+never shared.
+
+**Problem 7.**
+
+```bash
+echo 'this is not valid R $$$' >> baseline.R
+git add baseline.R
+git commit -m 'Add broken line'
+
+# Experiment A: amend it away
+git restore --source=HEAD~1 baseline.R
+git add baseline.R
+git commit --amend -m 'Add baseline note'
+git log --oneline
+#> ccc3333 Add baseline note        <- the broken commit is gone
+
+# Experiment B: recreate the bad commit, then revert
+echo 'this is not valid R $$$' >> baseline.R
+git commit -a -m 'Add broken line'
+git revert --no-edit HEAD
+git log --oneline
+#> ddd4444 Revert "Add broken line" <- both commits recorded
+#> eee5555 Add broken line
+```
+
+Amending leaves no trace that the error ever existed: the
+faulty commit is replaced and vanishes from the log.
+Reverting preserves the full record: both the faulty commit
+and the commit that undoes it remain in the history.
+Amending is right for private mistakes you want to erase;
+reverting is right for shared mistakes, where the honest,
+non-destructive record is what collaborators need. (The
+`git restore --source=HEAD~1 <file>` form used in experiment
+A restores the file to its state one commit back, discarding
+the broken line before amending.)
+
+**Problem 8.** Starting from `A -- B -- C`:
+
+- `git reset --soft HEAD~1` moves the branch to `B` but
+  leaves everything else alone. `git status` shows the
+  changes from `C` as staged ('Changes to be committed'),
+  ready to recommit.
+- `git reset --mixed HEAD~1` (the default) moves the branch
+  to `B` and unstages the changes from `C`. `git status`
+  shows them as modified but unstaged ('Changes not staged
+  for commit'). The work is still in your files.
+- `git reset --hard HEAD~1` moves the branch to `B` and
+  discards the changes from `C` entirely. `git status`
+  reports 'nothing to commit, working tree clean'; the work
+  from `C` is gone from both the staging area and the working
+  directory.
+
+The one never to run with uncommitted work you care about is
+`git reset --hard`. It discards changes with no confirmation
+and, for work that was never committed, no means of recovery.
+The committed changes from `C` in this exercise are in fact
+recoverable through Git's internal records, but any
+*uncommitted* edits sitting alongside them would be destroyed
+without recourse. `--soft` and `--mixed` only move the
+boundaries between Git's three areas and never delete your
+edits.
+
+## What's next
+
+You can now read history, compare any two versions, and undo
+almost any mistake. So far, however, the history has been a
+single straight line of commits. Day 3 introduces
+**branching**, the mechanism that lets you develop a change
+in isolation, without disturbing a working analysis, and then
+**merge** it back. Branching is what turns Git from a
+personal undo system into a tool for parallel work and, from
+Day 4 onward, collaboration. Keep the `baseline-summary`
+repository; Day 3 branches from it.

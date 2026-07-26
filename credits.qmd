@@ -1,0 +1,18 @@
+# Credits {.unnumbered}
+
+The chapter list was constructed by surveying publicly
+available version-control teaching materials from major
+data-science and biostatistics courses, including Jenny
+Bryan's *Happy Git and GitHub for the useR*, the Software
+Carpentry version-control lessons, and university course
+modules at Cornell (INFO 5940), Carnegie Mellon
+(Statistical Computing), and American University (DATA
+413/613), and adopting the topics common to the majority of
+them.
+
+Cover artwork generated procedurally by the R script at
+`images/build-cover.R`. Watercolour palette: deep rust
+through terracotta and amber to pale sand, anchored on a
+brand rust `#8f3a1a` chosen to echo the Git project's
+signature orange. Typography: Avenir family (Apple system
+font); body text in Source Serif 4.

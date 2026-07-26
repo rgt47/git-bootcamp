@@ -1,0 +1,1013 @@
+# Day 5: Collaboration and Reproducible Research {#sec-day5}
+
+## Learning objectives
+
+By the end of this day you should be able to:
+
+- Explain why sharing analysis scripts by email fails, and
+  how a shared Git remote solves the same problem.
+- Distinguish the two collaboration models, namely the
+  shared-repository model and the fork-and-pull-request
+  model, and say when each is appropriate.
+- Run the complete pull-request workflow from the terminal
+  with the `gh` command-line tool: branch, push, open,
+  review, and merge.
+- Fork a repository with `gh repo fork` and keep the fork
+  current with `gh repo sync`.
+- Recognise a rejected (non-fast-forward) push and integrate
+  remote work with `git pull`, resolving any conflict that
+  results.
+- Perform the same operations through the RStudio Git pane
+  and the `usethis` helper functions.
+- Write a `.gitignore` appropriate to an R analysis project,
+  and state without hesitation why data with protected
+  health information must never be committed.
+
+## Lecture
+
+### The collaboration problem
+
+Two biostatisticians are assigned to the same trial. One
+writes the baseline table, the other writes the efficacy
+analysis, and both edit `baseline.R`. Worked by email, the
+sequence is familiar and doomed. The first analyst emails
+`baseline.R`; the second edits it and emails it back; the
+first, who has meanwhile made her own edits, now holds two
+divergent files with the same name and no way to combine
+them except by hand. Whoever saves last wins, and the
+other's work is silently lost. This is the third failure
+named in the preface, and it is a version-control failure.
+
+A shared Git remote dissolves the problem. Both analysts
+clone the same GitHub repository. Each records commits
+locally, exactly as in the previous four days, and then
+pushes them to the shared remote. Git integrates concurrent
+work rather than overwriting it: when two people change
+different lines, Git merges the changes automatically; when
+they change the same lines, Git stops and asks a human to
+choose, using precisely the conflict-resolution skills from
+Day 3. Nothing is lost, and the history records who did
+what and when. The remaining question is one of process:
+how do collaborators propose, review, and integrate one
+another's changes in an orderly way? That process is the
+subject of today.
+
+### Two collaboration models
+
+There are two established ways to collaborate through a Git
+host, and they differ in who is permitted to write to the
+shared repository.
+
+The **shared-repository model** grants a small group of
+trusted collaborators direct push access to one repository.
+Each collaborator clones it, works on a branch, pushes that
+branch, and opens a pull request for review before the
+branch is merged into `main`. This is the model for a
+research team whose members are known to one another, for
+example the biostatistics group on a single trial. It is
+simple, and it keeps all work in one place.
+
+The **fork-and-pull-request model** does not require the
+contributor to have write access. The contributor creates a
+personal copy of the repository, called a **fork**, under
+their own account, pushes branches to that fork, and opens a
+pull request asking the maintainers of the original
+repository to pull in the change. This is the model of open
+source, where anyone may propose a change but only
+maintainers may accept it. In a biostatistics setting it fits
+contributing to an external package, or to a consortium
+repository where you are not a core member.
+
+The two models share the same unit of proposal, the pull
+request, and differ only in where the contributor's branch
+lives: in the shared repository itself, or in a fork. Learn
+the pull-request workflow once and both models follow.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: which model?
+
+Your three-person biostatistics team maintains a private
+GitHub repository for an ongoing trial. All three of you are
+named collaborators with push access. Should you fork the
+repository to add an interim-analysis script, or work on a
+branch within the shared repository?
+
+Work on a branch within the shared repository. Forking is
+for contributors who lack write access, typically outside
+contributors to a project they do not maintain. Because all
+three of you have push access to one repository, the
+shared-repository model is simpler and keeps every branch,
+issue, and pull request in a single place. You would create
+a branch such as `interim-analysis`, push it, and open a
+pull request for a colleague to review before it merges into
+`main`. Reserve forking for the case where you are proposing
+a change to a repository you cannot push to.
+:::
+
+### The pull-request workflow with gh
+
+A **pull request** (PR) is a request to merge one branch
+into another, wrapped in a page for discussion and review.
+It is a GitHub feature, not a Git feature, so we drive it
+with the official GitHub command-line tool, `gh`, introduced
+on Day 4. Assume you have cloned the shared repository and
+authenticated with `gh auth login`. The workflow has four
+steps: branch and push, open, review, merge.
+
+**Step one: branch, commit, and push.** Create a feature
+branch with the Day 3 commands, make your commits, then push
+the branch to the remote. The first push of a new branch
+needs `-u` to set its upstream:
+
+```bash
+$ git switch -c add-sex-summary
+Switched to a new branch 'add-sex-summary'
+$ echo 'sex_table <- table(dat$sex)' >> baseline.R
+$ git commit -a -m 'Add sex distribution to baseline summary'
+[add-sex-summary 1a2b3c4] Add sex distribution to baseline
+ 1 file changed, 1 insertion(+)
+$ git push -u origin add-sex-summary
+Enumerating objects: 5, done.
+...
+To github.com:rgt47/baseline-summary.git
+ * [new branch]      add-sex-summary -> add-sex-summary
+branch 'add-sex-summary' set up to track 'origin/add-sex-summary'.
+```
+
+The `-u` flag (short for `--set-upstream`) links your local
+branch to the remote branch, so that later `git push` and
+`git pull` on this branch need no arguments.
+
+**Step two: open the pull request.** With the branch on the
+remote, `gh pr create` opens a PR proposing to merge it into
+`main`:
+
+```bash
+$ gh pr create --title 'Add sex distribution to baseline' \
+    --body 'Adds a sex frequency table to baseline.R for
+the Table 1 summary. No change to existing outputs.'
+
+Creating pull request for add-sex-summary into main in
+rgt47/baseline-summary
+
+https://github.com/rgt47/baseline-summary/pull/7
+```
+
+`gh` prints the URL of the new pull request; here it is
+number 7. If you would rather have `gh` fill the title and
+body from your commit messages, use `--fill`:
+
+```bash
+$ gh pr create --fill
+Creating pull request for add-sex-summary into main in
+rgt47/baseline-summary
+
+https://github.com/rgt47/baseline-summary/pull/7
+```
+
+**Step three: inspect and review.** A reviewer, typically a
+colleague, examines the proposed change before it merges.
+List the open pull requests:
+
+```bash
+$ gh pr list
+Showing 1 of 1 open pull request in rgt47/baseline-summary
+
+ID   TITLE                              BRANCH           CREATED
+#7   Add sex distribution to baseline   add-sex-summary  about 2 minutes ago
+```
+
+View a pull request's description and discussion in the
+terminal, or open it in a browser:
+
+```bash
+$ gh pr view 7
+Add sex distribution to baseline #7
+Open  jane-investigator wants to merge 1 commit into main from add-sex-summary
+
+  Adds a sex frequency table to baseline.R for the Table 1
+  summary. No change to existing outputs.
+```
+
+```bash
+$ gh pr view 7 --web
+Opening github.com/rgt47/baseline-summary/pull/7 in your browser.
+```
+
+Read the actual code change with `gh pr diff`:
+
+```bash
+$ gh pr diff 7
+diff --git a/baseline.R b/baseline.R
+index 8f3a1a2..1a2b3c4 100644
+--- a/baseline.R
++++ b/baseline.R
+@@ -1,3 +1,4 @@
+ dat <- read.csv("data-raw/enrollment.csv")
+ n_total <- nrow(dat)
+ mean_age <- mean(dat$age, na.rm = TRUE)
++sex_table <- table(dat$sex)
+```
+
+To run or test the proposed code before approving it, check
+the branch out locally. `gh pr checkout` fetches the pull
+request's branch and switches to it, even for a pull request
+that originates from someone else's fork:
+
+```bash
+$ gh pr checkout 7
+remote: Enumerating objects: 5, done.
+...
+Switched to branch 'add-sex-summary'
+```
+
+Having read and, if appropriate, run the change, record a
+review verdict. `gh pr review` offers three verdicts:
+
+```bash
+$ gh pr review 7 --approve \
+    -b 'Confirmed the table renders; approving.'
+```
+
+```bash
+$ gh pr review 7 --comment \
+    -b 'Consider na.rm handling for missing sex.'
+```
+
+```bash
+$ gh pr review 7 --request-changes \
+    -b 'Please add a comment naming the source column.'
+```
+
+An `--approve` clears the pull request to merge; a
+`--comment` leaves feedback without a verdict; a
+`--request-changes` blocks the merge until the author pushes
+a fix. If changes are requested, the author simply commits
+and pushes again to the same branch, and the pull request
+updates in place; there is no need to open a new one.
+
+**Step four: merge.** Once approved, merge the pull request
+and delete its now-redundant branch:
+
+```bash
+$ gh pr merge 7 --squash --delete-branch
+Squashed and merged pull request #7 (Add sex distribution to baseline)
+Deleted branch add-sex-summary and switched to branch main
+```
+
+GitHub offers three merge strategies, and `gh pr merge`
+takes one of `--merge`, `--squash`, or `--rebase`. A plain
+`--merge` creates a merge commit that preserves every commit
+on the branch. `--rebase` replays the branch's commits onto
+`main` individually, with no merge commit. `--squash`
+combines all of the branch's commits into a single commit on
+`main`. For most analysis work, prefer `--squash`: a feature
+branch often accumulates small 'fix typo' and 'try again'
+commits whose individual history is noise, and squashing
+collapses them into one clean, reviewable entry on `main`.
+The `--delete-branch` flag tidies up the merged branch on
+the remote, which is good hygiene once its work has landed.
+
+::: {.callout-tip}
+## Tip
+
+You do not have to remember the pull-request number.
+Run any `gh pr` command from a checked-out branch and `gh`
+infers the pull request associated with that branch, so
+`gh pr view`, `gh pr diff`, and `gh pr merge` all work with
+no number when you are on the branch in question.
+:::
+
+### Keeping your local main current
+
+After a pull request merges on GitHub, your collaborators'
+`main` and the remote `main` have moved ahead of the copy on
+your machine. Before starting new work, update your local
+`main`:
+
+```bash
+$ git switch main
+Switched to branch 'main'
+$ git pull
+Updating 8f3a1a2..9c8b7a6
+Fast-forward
+ baseline.R | 1 +
+ 1 file changed, 1 insertion(+)
+```
+
+`git pull` fetches the new commits from the remote and
+integrates them. Here the integration is a **fast-forward**:
+your local `main` had no commits of its own, so Git simply
+advances your `main` pointer to match the remote. Make
+`git switch main` followed by `git pull` the first thing you
+do each working session, so that you always branch from
+current work.
+
+### Forking and syncing a fork
+
+When you lack write access to a repository, fork it. One
+command creates the fork under your account and clones it
+locally:
+
+```bash
+$ gh repo fork biostat-consortium/trial-templates --clone
+✓ Created fork rgt47/trial-templates
+✓ Cloned fork
+✓ Added remote origin pointing to your fork
+✓ Added remote upstream pointing to biostat-consortium/trial-templates
+```
+
+`gh` configures two remotes for you: `origin` is your fork,
+which you can push to, and `upstream` is the original
+repository, which you cannot. You work on branches, push
+them to `origin`, and open pull requests against `upstream`;
+`gh pr create` detects the fork relationship and targets the
+upstream repository automatically.
+
+The original repository keeps moving while your fork sits
+still, so a fork drifts out of date. Bring it current with
+`gh repo sync`, which pulls the upstream changes into your
+fork:
+
+```bash
+$ gh repo sync rgt47/trial-templates
+✓ Synced the "main" branch from biostat-consortium/trial-templates to rgt47/trial-templates
+```
+
+Sync your fork before starting each new contribution, for
+the same reason you pull `main` before starting new work: so
+that your change is built on the current state and merges
+cleanly.
+
+### When your push is rejected
+
+Suppose you and a colleague both start from the same `main`,
+both commit locally, and your colleague pushes first. When
+you then push, Git refuses:
+
+```bash
+$ git push
+To github.com:rgt47/baseline-summary.git
+ ! [rejected]        main -> main (fetch first)
+error: failed to push some refs to
+'github.com:rgt47/baseline-summary.git'
+hint: Updates were rejected because the remote contains work
+hint: that you do not have locally. This is usually caused by
+hint: another repository pushing to the same ref.
+```
+
+This is a **non-fast-forward** rejection. It is not an
+error in the sense of something broken; it is Git protecting
+your colleague's commit from being overwritten. The remote
+`main` has a commit you do not have, so Git cannot simply
+advance the pointer. You must first integrate the remote
+work into your local branch, then push the combined result:
+
+```bash
+$ git pull
+```
+
+If your change and your colleague's change touch different
+lines, `git pull` merges them automatically and you may push
+the result. If they touch the same lines, `git pull` stops
+with a merge conflict, exactly as a local `git merge` does
+on Day 3:
+
+```bash
+Auto-merging baseline.R
+CONFLICT (content): Merge conflict in baseline.R
+Automatic merge failed; fix conflicts and then commit the result.
+```
+
+Resolve it with the same procedure you already know. Open
+the conflicted file, find the marked region, and edit it to
+the correct combined content:
+
+```text
+<<<<<<< HEAD
+mean_age <- mean(dat$age, na.rm = TRUE)
+=======
+median_age <- median(dat$age, na.rm = TRUE)
+>>>>>>> 9c8b7a6...
+```
+
+Delete the markers and keep the lines that belong, here both
+of them:
+
+```text
+mean_age <- mean(dat$age, na.rm = TRUE)
+median_age <- median(dat$age, na.rm = TRUE)
+```
+
+Then stage the resolved file and complete the merge with a
+commit, after which the push succeeds:
+
+```bash
+$ git add baseline.R
+$ git commit -m 'Merge remote main; keep mean and median age'
+$ git push
+```
+
+The only new element compared with Day 3 is the remote
+context; the conflict itself is identical, and so is its
+resolution.
+
+::: {.callout-tip}
+## Tip
+
+Some teams prefer a linear history without merge commits. In
+that case pull with `git pull --rebase`, which replays your
+local commits on top of the fetched remote commits instead
+of creating a merge commit. Conflicts are resolved the same
+way, staged with `git add`, and the rebase continued with
+`git rebase --continue`. The default `git pull` is
+sufficient for this book; `git pull --rebase` is a
+refinement, and rebasing is treated properly in the
+companion *Biostatistics Practicum* volume.
+:::
+
+::: {.callout-warning}
+## Warning
+
+When a push is rejected, do not reach for `git push --force`.
+Forcing overwrites the remote branch with your local one and
+discards whatever your collaborator pushed, which is the very
+data loss version control exists to prevent. On a shared
+branch, force-pushing is destructive and can erase a
+colleague's committed work without warning. The correct
+response to a rejected push is always to `git pull` first,
+integrate, and push the combined result. Reserve any form of
+forced push for branches only you use, and even then prefer
+the safer `git push --force-with-lease`, discussed in the
+*Practicum*.
+:::
+
+### Git through the RStudio IDE
+
+Many biostatisticians live in RStudio rather than a terminal,
+and RStudio exposes the same Git operations through a
+graphical pane. When a project is an RStudio Project (an
+`.Rproj` file) and a Git repository, a **Git** tab appears in
+the top-right pane. Everything it offers maps directly onto
+commands you already know:
+
+- Each changed file has a checkbox. Ticking it is `git add`;
+  the box is the staging area made visible.
+- The **Commit** button opens a window showing the diff of
+  staged changes and a box for the commit message. Clicking
+  **Commit** runs `git commit`.
+- **Push** and **Pull** buttons run `git push` and
+  `git pull` against the configured remote.
+- A **New Branch** button runs `git branch` and
+  `git switch`, and a branch dropdown switches between
+  branches.
+- The **History** button (the clock icon) shows the commit
+  log with per-commit diffs, the graphical form of
+  `git log`.
+- Diff markers and merge-conflict markers appear in the same
+  `<<<<<<<`, `=======`, `>>>>>>>` form, edited directly in
+  the source editor.
+
+The pane is a convenience layer over the identical Git
+machinery; nothing it does is unavailable from the terminal,
+and understanding the terminal commands is what makes the
+buttons legible.
+
+The `usethis` package supplies R functions that automate the
+setup and pull-request steps from within an R session. These
+are convenience wrappers over the same Git and GitHub
+operations taught all week, callable at the R console:
+
+```r
+usethis::use_git()
+usethis::use_github()
+usethis::create_github_token()
+usethis::pr_init('add-sex-summary')
+usethis::pr_push()
+```
+
+`use_git()` initialises a repository and makes the first
+commit, the equivalent of `git init` plus an initial
+`git add` and `git commit`. `use_github()` creates a GitHub
+repository and connects it as the remote, the equivalent of
+`gh repo create` followed by setting the remote and pushing.
+`create_github_token()` opens the GitHub page for minting a
+personal access token, which `usethis` then stores for
+authenticated operations. `pr_init()` creates and switches
+to a new branch, and `pr_push()` pushes that branch and
+opens the pull-request page in your browser. They are a
+smooth on-ramp for analysts who prefer to stay in R, and
+they do nothing you could not do with `git` and `gh`.
+
+### A .gitignore for R projects
+
+Day 1 introduced `.gitignore`; an R analysis project has a
+specific set of paths that should never be committed. A
+realistic `.gitignore` for such a project reads:
+
+```text
+# RStudio and R session files
+.Rproj.user/
+.Rhistory
+.RData
+.Rapp.history
+
+# Rendered output
+*.html
+*.pdf
+
+# renv: track the lockfile, ignore the library
+renv/library/
+renv/staging/
+
+# Data with protected health information: never commit
+data-raw/
+*.csv
+```
+
+A few of these deserve comment. The `.Rproj.user/` directory
+holds machine-specific RStudio state and is never shared; the
+`.Rproj` file itself, by contrast, is small and useful and is
+normally committed, which is why it is absent from the list.
+The `renv` lines encode an important distinction: you commit
+`renv.lock`, the manifest that records exact package
+versions, but you ignore `renv/library/`, the large installed
+library that `renv` can rebuild from the lockfile on any
+machine. This is how a project pins its dependencies without
+committing thousands of package files; `renv` in depth is a
+topic of the *Practicum*.
+
+The final block is the one that matters most. Raw data in a
+clinical trial routinely contains protected health
+information, and committing it, even once, even to a private
+repository, places it permanently in the history where a
+later `git clone` will reproduce it in full. The Day 1
+warning bears repeating with emphasis: write these ignore
+rules before any data file is ever staged. A `.gitignore`
+committed as the first commit protects the repository from
+its first moment; one written after a `data-raw/` folder has
+already been committed does nothing to remove what is already
+in the history.
+
+::: {.callout-warning}
+## Warning
+
+Committing protected health information to Git is a
+reportable data breach, not a tidiness problem, and adding
+the file to `.gitignore` afterwards does not undo it: the
+data remains in every past commit and in every clone. Removing
+it from history requires rewriting the repository with tools
+covered in the *Practicum*, and if the repository was ever
+pushed, you must assume the data is compromised and follow
+your institution's breach procedure. The only reliable
+defence is prevention: a `.gitignore` that excludes data,
+committed before any data enters the project.
+:::
+
+### Best-practices recap
+
+The week reduces to a small set of habits that, held
+consistently, deliver the reproducibility and collaboration
+that motivated it:
+
+- Commit early and often. A commit is cheap; a lost
+  afternoon of unrecorded work is not.
+- Make each commit one conceptual change, so that history is
+  a sequence of legible steps rather than a pile of mixed
+  edits.
+- Write commit messages that state what changed and why, in
+  the imperative mood, as Day 2 taught.
+- Never commit data with protected health information, and
+  never commit credentials or tokens. Guard both with
+  `.gitignore` written first.
+- Branch for every feature or analysis, keeping `main`
+  always in a working state.
+- Open a pull request and have a colleague review before
+  merging into `main`. Review is where errors are caught
+  before they reach the shared history.
+- Pull before you start and pull before you push, so that
+  your work is always built on current shared state.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: squash versus merge
+
+Your feature branch has five commits, three of which are
+`fix typo`, `oops`, and `try again`. You are about to merge
+it into `main`. Which merge strategy keeps the history of
+`main` cleanest, and what becomes of those five commits?
+
+Use `gh pr merge --squash`. The squash strategy combines all
+five commits on the branch into a single new commit on
+`main`, so the noise of `fix typo`, `oops`, and `try again`
+disappears from the shared history and `main` gains one
+clean, well-described entry for the whole feature. A plain
+`--merge` would instead preserve all five commits plus a
+merge commit, carrying the noise onto `main`; `--rebase`
+would replay all five individually with no merge commit,
+which also keeps the noise. For analysis work, where branch
+commits are often exploratory, squash gives the most
+readable `main`. Add `--delete-branch` to remove the merged
+branch afterwards.
+:::
+
+## Worked example: a full collaborative cycle
+
+We return one last time to the `baseline-summary` repository,
+which Day 4 published to GitHub at
+`github.com/rgt47/baseline-summary`. A colleague has asked
+for a median-age summary to accompany the mean. We deliver it
+through a complete pull-request cycle: branch, push, open,
+review, merge, and sync.
+
+Begin from a current `main`. The first act of any session is
+to pull, so that we branch from the latest shared state:
+
+```bash
+$ git switch main
+Already on 'main'
+$ git pull
+Already up to date.
+```
+
+Create a feature branch and make the change on it:
+
+```bash
+$ git switch -c add-median-age
+Switched to a new branch 'add-median-age'
+$ echo 'median_age <- median(dat$age, na.rm = TRUE)' >> baseline.R
+$ git commit -a -m 'Add median age to baseline summary'
+[add-median-age 4d5e6f7] Add median age to baseline summary
+ 1 file changed, 1 insertion(+)
+```
+
+Push the branch to the remote, setting its upstream:
+
+```bash
+$ git push -u origin add-median-age
+Enumerating objects: 5, done.
+...
+To github.com:rgt47/baseline-summary.git
+ * [new branch]      add-median-age -> add-median-age
+branch 'add-median-age' set up to track 'origin/add-median-age'.
+```
+
+Open the pull request, letting `gh` fill the title and body
+from the commit message:
+
+```bash
+$ gh pr create --fill
+Creating pull request for add-median-age into main in
+rgt47/baseline-summary
+
+https://github.com/rgt47/baseline-summary/pull/8
+```
+
+Confirm it exists and read the proposed change:
+
+```bash
+$ gh pr list
+Showing 1 of 1 open pull request in rgt47/baseline-summary
+
+ID   TITLE                            BRANCH          CREATED
+#8   Add median age to baseline sum.  add-median-age  about 1 minute ago
+```
+
+```bash
+$ gh pr diff 8
+diff --git a/baseline.R b/baseline.R
+index 1a2b3c4..4d5e6f7 100644
+--- a/baseline.R
++++ b/baseline.R
+@@ -2,3 +2,4 @@ dat <- read.csv("data-raw/enrollment.csv")
+ n_total <- nrow(dat)
+ mean_age <- mean(dat$age, na.rm = TRUE)
+ sex_table <- table(dat$sex)
++median_age <- median(dat$age, na.rm = TRUE)
+```
+
+A reviewer checks the change out, confirms it runs, and
+records an approval:
+
+```bash
+$ gh pr checkout 8
+Switched to branch 'add-median-age'
+$ gh pr review 8 --approve \
+    -b 'Runs cleanly; median complements the mean. Approving.'
+```
+
+With the approval recorded, merge the pull request, squashing
+its commits into one and deleting the branch:
+
+```bash
+$ gh pr merge 8 --squash --delete-branch
+Squashed and merged pull request #8 (Add median age to baseline summary)
+Deleted branch add-median-age and switched to branch main
+```
+
+Finally, update the local `main` so that it reflects the
+merge, and confirm the clean state:
+
+```bash
+$ git pull
+Updating 9c8b7a6..2f3a4b5
+Fast-forward
+ baseline.R | 1 +
+ 1 file changed, 1 insertion(+)
+$ git log --oneline
+2f3a4b5 Add median age to baseline summary (#8)
+9c8b7a6 Add sex distribution to baseline summary (#7)
+8f3a1a2 Add total count and mean age
+a1b2c3d Add gitignore before any data enters repo
+```
+
+The history on `main` is a clean sequence of reviewed,
+squashed changes, each tied to the pull request that
+introduced it by the `(#8)` and `(#7)` references GitHub
+appends automatically. Nothing was emailed, nothing was
+overwritten, and every change passed a colleague's review
+before it entered the shared record. This is the workflow a
+practising biostatistics team runs every day.
+
+## Homework
+
+Attempt each problem before reading its solution. For
+problems requiring a remote, use a private test repository on
+your own GitHub account so that you can experiment freely.
+Several problems ask you to simulate a second collaborator;
+you can do this convincingly with a second clone of the same
+repository in a separate directory.
+
+1. **Confirm your tooling.** Run the commands that report
+   your `gh` version and your authentication status. Confirm
+   that you are logged in to `github.com` and that your token
+   has the scopes `gh` needs. If you are not authenticated,
+   authenticate.
+
+2. **A branch and a pull request.** In a clone of a test
+   repository, create a branch `add-readme-note`, append a
+   line to `README.md`, commit it, and push the branch with
+   its upstream set. Then open a pull request with a title
+   and body of your choosing. What number does `gh` assign
+   it, and what URL does it print?
+
+3. **Inspect a pull request.** Using the pull request from
+   problem 2, run the commands that list open pull requests,
+   view the pull request's description in the terminal, and
+   print its diff. What does each command show that the
+   others do not?
+
+4. **Review and merge.** Approve the pull request from
+   problem 2 with a review comment, then merge it with the
+   squash strategy and delete its branch. Afterwards, switch
+   to `main` and update it. What integration does `git pull`
+   report, and why is it a fast-forward?
+
+5. **A rejected push.** Simulate two collaborators with two
+   clones of the same repository in two directories. In the
+   first clone, commit a change to `main` and push it. In the
+   second clone, commit a different change to the same line
+   of the same file and try to push. Record the exact
+   message Git prints. Why is the push rejected, and what is
+   the correct next command?
+
+6. **Resolve a pulled conflict.** Continuing from problem 5,
+   run `git pull` in the second clone, resolve the resulting
+   conflict so that both collaborators' intent is preserved,
+   commit the merge, and push. Show the conflict markers you
+   resolved and the final content you kept.
+
+7. **Fork and sync.** Fork any public repository with
+   `gh repo fork --clone`. Identify the two remotes `gh`
+   configured and state which one you may push to. Then run
+   `gh repo sync` on your fork and explain what it did.
+
+8. **An R .gitignore.** Write a `.gitignore` for an R
+   analysis project that excludes RStudio session files, the
+   `renv` library but not its lockfile, rendered HTML and
+   PDF, and a `data-raw/` directory of protected data.
+   Create files matching each pattern, confirm with
+   `git status` that all are ignored, and explain in one
+   sentence why the `data-raw/` rule is the most important
+   line in the file.
+
+## Solutions
+
+**Problem 1.**
+
+```bash
+gh --version
+gh auth status
+```
+
+`gh auth status` reports the host, the account you are logged
+in as, and the token's scopes, which should include `repo`
+and `read:org` for the operations in this chapter. If it
+reports that you are not logged in, run `gh auth login` and
+follow the prompts, as on Day 4.
+
+**Problem 2.**
+
+```bash
+git switch -c add-readme-note
+echo '' >> README.md
+echo 'Maintained by the biostatistics group.' >> README.md
+git commit -a -m 'Note maintaining group in README'
+git push -u origin add-readme-note
+gh pr create --title 'Note maintaining group' \
+  --body 'Adds a maintainer line to the README.'
+#> https://github.com/<you>/<repo>/pull/1
+```
+
+`gh` assigns the next available pull-request number, here 1
+in a fresh repository, and prints the full URL to the pull
+request, which you can open in a browser or pass to
+`gh pr view`.
+
+**Problem 3.**
+
+```bash
+gh pr list
+#> shows the number, title, branch, and age of each open PR
+gh pr view 1
+#> shows this PR's title, state, author, and body text
+gh pr diff 1
+#> shows the actual line-by-line code change
+```
+
+`gh pr list` gives the inventory of open pull requests
+without detail; `gh pr view` gives one pull request's
+description and discussion but not its code; `gh pr diff`
+gives the code change itself. Together they answer 'what is
+open?', 'what does this one propose, in prose?', and 'what
+exactly does it change?'.
+
+**Problem 4.**
+
+```bash
+gh pr review 1 --approve -b 'Looks good; approving.'
+gh pr merge 1 --squash --delete-branch
+git switch main
+git pull
+#> Updating a1b2c3d..d4e5f6a
+#> Fast-forward
+#>  README.md | 2 +-
+#>  1 file changed, 1 insertion(+), 1 deletion(-)
+```
+
+`git pull` reports a **fast-forward**. Your local `main` had
+no commits of its own since the branch was created, so
+integrating the merged change requires only advancing the
+`main` pointer to the remote's commit; no merge commit is
+needed. A fast-forward is the common, frictionless case that
+results from pulling other people's already-merged work into
+an unchanged local branch.
+
+**Problem 5.**
+
+```bash
+# In clone A
+echo 'a_line <- 1' >> shared.R
+git commit -a -m 'A: set a_line'
+git push
+# In clone B, having edited the same line differently
+echo 'a_line <- 2' >> shared.R
+git commit -a -m 'B: set a_line'
+git push
+#> ! [rejected]        main -> main (fetch first)
+#> error: failed to push some refs to '...'
+#> hint: Updates were rejected because the remote contains
+#> hint: work that you do not have locally.
+```
+
+The push from clone B is rejected as a non-fast-forward
+because the remote `main` now holds clone A's commit, which
+clone B does not have; advancing the remote to B's commit
+would discard A's. Git will not do that silently. The
+correct next command is `git pull`, to integrate A's commit
+into B before pushing the combined result. It is never
+`git push --force`, which would destroy A's commit.
+
+**Problem 6.**
+
+```bash
+# In clone B
+git pull
+#> CONFLICT (content): Merge conflict in shared.R
+```
+
+Open `shared.R` and find the conflict:
+
+```text
+<<<<<<< HEAD
+a_line <- 2
+=======
+a_line <- 1
+>>>>>>> a1b2c3d...
+```
+
+Resolve it to preserve both collaborators' intent, here by
+keeping both assignments under distinct names, then remove
+the markers:
+
+```text
+a_line_b <- 2
+a_line_a <- 1
+```
+
+Complete the merge and push:
+
+```bash
+git add shared.R
+git commit -m 'Merge: keep both a_line values'
+git push
+```
+
+The push now succeeds because clone B's `main` contains both
+commits plus the merge that reconciles them, so advancing the
+remote no longer discards anything.
+
+**Problem 7.**
+
+```bash
+gh repo fork <owner>/<repo> --clone
+cd <repo>
+git remote -v
+#> origin    git@github.com:<you>/<repo>.git (push)
+#> upstream  git@github.com:<owner>/<repo>.git (fetch)
+gh repo sync <you>/<repo>
+#> ✓ Synced the "main" branch from <owner>/<repo> to <you>/<repo>
+```
+
+`gh` configures `origin`, your fork, and `upstream`, the
+original repository. You may push only to `origin`; you
+propose changes to `upstream` through pull requests.
+`gh repo sync` pulled the latest commits from the upstream
+`main` into your fork's `main`, bringing a fork that had
+drifted out of date back into agreement with the original.
+
+**Problem 8.**
+
+```bash
+cat > .gitignore <<'EOF'
+.Rproj.user/
+.Rhistory
+.RData
+*.html
+*.pdf
+renv/library/
+data-raw/
+EOF
+mkdir -p .Rproj.user renv/library data-raw
+touch .RData report.html manuscript.pdf data-raw/phi.csv
+touch renv/library/placeholder
+git init
+git add .gitignore
+git status
+#> On branch main
+#> Changes to be committed:
+#>   new file:   .gitignore
+#> (no other files listed)
+```
+
+Only `.gitignore` is stageable; every other created path
+matches an ignore rule and is suppressed. Note that
+`renv.lock`, were it present, would not match `renv/library/`
+and so would remain trackable, which is the intended
+behaviour: pin versions by committing the lockfile, ignore
+the rebuildable library. The `data-raw/` line is the most
+important because that directory holds raw clinical data with
+protected health information, which committing would turn
+into a permanent, cloneable breach of confidentiality.
+
+## What's next
+
+There is no Day 6, because you have finished the boot camp.
+In five days you moved from never having made a commit to
+running the full collaborative workflow of a practising
+biostatistics team: recording history, navigating and undoing
+it, branching and merging, publishing to GitHub, and
+proposing, reviewing, and integrating changes through pull
+requests. The `baseline-summary` repository that began as an
+empty folder on Day 1 is now a reviewed, collaborative,
+reproducible record of an analysis. That is the whole point:
+your commit history is a lab notebook, and you now keep it.
+
+What remains is the infrastructure that surrounds this
+everyday core, and it is the subject of the companion
+*Biostatistics Practicum* volume. There you will meet Git's
+internals and the reflog, interactive rebasing and history
+rewriting, dependency-pinned and containerised
+reproducibility with `renv` in depth and Docker, Quarto
+pipelines that render an analysis from data to manuscript in
+one command, continuous integration with GitHub Actions, and
+the version-control practices that regulated clinical-trial
+work and CDISC deliverables demand. If any of the language
+of R analysis in these worked examples was unfamiliar, the
+sibling boot camp *R for Biostatistics* covers the R
+language over an equivalent week, and the two are designed to
+be taken together.
+
+For now, congratulations on completing the week. Keep the
+`baseline-summary` repository; it is the seed of your first
+reproducible project, and the habits you built on it are the
+ones that carry into every analysis you will publish.

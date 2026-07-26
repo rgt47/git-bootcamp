@@ -1,0 +1,895 @@
+# Day 3: Branching and Merging {#sec-day3}
+
+## Learning objectives
+
+By the end of this day you should be able to:
+
+- Explain what a branch is: a lightweight, movable pointer
+  to a commit, not a copy of your files.
+- List branches with `git branch` and create and switch
+  between them with `git switch`.
+- Describe how `HEAD` moves and what happens to the working
+  directory when you switch branches.
+- Delete a branch with `git branch -d`, and explain the
+  danger of the `-D` force variant.
+- Combine work with `git merge`, and distinguish a
+  fast-forward merge from a three-way merge.
+- Adopt the feature-branch workflow and explain why it keeps
+  `main` in a known-good state.
+- Recognise, understand, and resolve a merge conflict, and
+  back out of one with `git merge --abort`.
+
+## Lecture
+
+### What a branch is
+
+The word 'branch' invites a misleading picture: a copy of
+your project folder that you edit separately and later paste
+back. That is not what a branch is, and holding the wrong
+picture makes every later command confusing.
+
+A **branch is a pointer to a commit**. Nothing more. Recall
+from Day 1 that each commit is a snapshot with a
+forty-character hash, and that each commit records the hash
+of the commit before it. The commits therefore form a chain
+running back through history. A branch is simply a small,
+named label that points at one commit in that chain, and
+that moves forward automatically each time you commit.
+
+Consider a repository with three commits on `main`:
+
+```text
+              main
+               |
+A -- B -- C
+```
+
+`main` is not the three commits; it is the label pointing at
+`C`, the most recent one. When you make a fourth commit, Git
+creates commit `D`, sets its parent to `C`, and slides the
+`main` label forward to `D`:
+
+```text
+                   main
+                    |
+A -- B -- C -- D
+```
+
+This is why a branch is described as **lightweight** and
+**movable**. Creating one writes a single line to a file
+under `.git`; it does not copy `A`, `B`, or `C`. A branch is
+one of the cheapest things in Git, which is precisely why
+branching is used so freely.
+
+Alongside the branch labels sits one more pointer, `HEAD`,
+which you met briefly on Day 1. `HEAD` marks 'the commit you
+are currently on'. Almost always it points not at a commit
+directly but at a branch, and that branch points at a
+commit. Written out, the arrangement above is:
+
+```text
+HEAD -> main -> D
+```
+
+Reading this chain, 'you are on branch `main`, which is
+currently at commit `D`', is the mental model that makes the
+rest of the day straightforward.
+
+### Listing, creating, and switching branches
+
+List the branches in a repository with `git branch`:
+
+```bash
+$ git branch
+* main
+```
+
+The asterisk marks the branch you are currently on. A new
+repository has exactly one branch, `main`, so there is
+little to see yet.
+
+Create a new branch and switch onto it in a single step with
+`git switch -c`, where `-c` stands for 'create':
+
+```bash
+$ git switch -c sensitivity-analysis
+Switched to a new branch 'sensitivity-analysis'
+```
+
+The new branch is created pointing at the same commit you
+were on, and `HEAD` now follows it. List the branches again
+to confirm:
+
+```bash
+$ git branch
+  main
+* sensitivity-analysis
+```
+
+Both branches point at the same commit for the moment; the
+only thing that has changed is which one `HEAD` follows. To
+move back to an existing branch, use `git switch` without
+the `-c`:
+
+```bash
+$ git switch main
+Switched to branch 'main'
+```
+
+::: {.callout-tip}
+## Tip
+
+If you have used Git before, or read older tutorials, you
+will have seen `git checkout` used for this: `git checkout
+-b <name>` to create and `git checkout <name>` to switch.
+That command still works and does exactly the same thing.
+The `git switch` command was introduced in 2019 to give
+branch switching its own dedicated, less overloaded verb.
+This book teaches `git switch`, but you should recognise
+`git checkout` when you meet it in the wild.
+:::
+
+### How HEAD moves and what happens to your files
+
+When you run `git switch <branch>`, two things happen. First,
+`HEAD` is repointed to the named branch. Second, and this is
+the part that surprises newcomers, Git rewrites the files in
+your working directory to match the commit that branch
+points at. Switching branches is not a passive change of
+label; it changes the files you see on disk.
+
+An example makes this concrete. Suppose on branch `main` the
+file `baseline.R` ends at a mean-age calculation, and on
+branch `sensitivity-analysis` you have added twenty lines of
+subgroup code and committed them. Switching between the two
+branches swaps the on-disk contents of `baseline.R` back and
+forth: the extra twenty lines appear when you switch to the
+feature branch and vanish when you switch back to `main`.
+They are not lost when they vanish; they are safe in the
+commit on the feature branch, and the branch label remembers
+where that commit is.
+
+::: {.callout-warning}
+## Warning
+
+Git will refuse to switch branches if you have uncommitted
+changes that switching would overwrite, printing 'Your local
+changes to the following files would be overwritten by
+checkout'. This is a protection, not an obstacle. It is
+telling you that you have work in the working directory that
+belongs to neither branch cleanly. The remedy is almost
+always to commit your changes on the current branch first,
+so that they are safely recorded, and then switch. Committing
+before switching is a habit worth building early.
+:::
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: where did my code go?
+
+You are on branch `sensitivity-analysis`, where `baseline.R`
+contains a subgroup analysis you committed. You run `git
+switch main` and open `baseline.R`; the subgroup code is
+gone. Have you lost it?
+
+No. The subgroup code lives in a commit on the
+`sensitivity-analysis` branch, and that branch label still
+points at that commit. Switching to `main` rewrote your
+working directory to match `main`, which never had the
+subgroup code, so it is absent from the files on disk right
+now. Running `git switch sensitivity-analysis` repoints
+`HEAD` to the feature branch and rewrites the working
+directory again, and the subgroup code reappears exactly as
+you left it. Nothing committed to a branch is lost by
+switching away from it.
+:::
+
+### Deleting a branch
+
+Once a branch has served its purpose, typically because its
+work has been merged into `main`, delete the label to keep
+the repository tidy. Deleting a branch removes only the
+pointer, not the commits it pointed at, provided those
+commits are reachable from another branch.
+
+```bash
+$ git branch -d sensitivity-analysis
+Deleted branch sensitivity-analysis (was e4f5a6b).
+```
+
+The `-d` flag ('delete') is deliberately cautious. It
+refuses to delete a branch whose commits have not been
+merged anywhere else, because deleting such a branch would
+strand those commits with no label pointing at them, making
+them very hard to recover. In that situation Git prints an
+error and declines:
+
+```bash
+$ git branch -d draft-analysis
+error: the branch 'draft-analysis' is not fully merged.
+```
+
+The capital `-D` flag forces the deletion regardless.
+
+::: {.callout-warning}
+## Warning
+
+`git branch -D <name>` deletes a branch even when its
+commits are unmerged, stranding that work. The commits are
+not immediately erased, and an advanced tool called the
+reflog can sometimes recover them, but treat `-D` as
+discarding the branch's unique commits. Use the lower-case
+`-d` by default and reach for `-D` only when you are certain
+the branch holds nothing you want to keep.
+:::
+
+### Merging: fast-forward and three-way
+
+Branching would be pointless if work could not be brought
+back together. **Merging** combines the commits of one
+branch into another. You run `git merge <branch>` while on
+the branch you want to receive the work; the named branch is
+merged into your current branch.
+
+There are two ways a merge can play out, and understanding
+which one occurred is the key to reading Git's output.
+
+A **fast-forward merge** happens when the receiving branch
+has not moved since the other branch was created. Suppose
+`main` points at `C`, and a feature branch added `D` and `E`
+on top of it:
+
+```text
+              main
+               |
+A -- B -- C
+               \
+                D -- E
+                     |
+                  feature
+```
+
+Because `main` still points at `C`, and `C` is directly in
+the ancestry of `E`, Git can incorporate the feature simply
+by sliding the `main` label forward to `E`. No new commit is
+needed; the history is already a straight line. This is a
+fast-forward:
+
+```text
+                        main
+                         |
+A -- B -- C -- D -- E
+                         |
+                      feature
+```
+
+A **three-way merge** happens when both branches have moved
+since they diverged, so that neither is an ancestor of the
+other. Suppose after creating the feature branch you also
+committed `F` on `main`:
+
+```text
+                   main
+                    |
+A -- B -- C -- F
+               \
+                D -- E
+                     |
+                  feature
+```
+
+Now `main` cannot simply slide forward, because `F` and `E`
+are on divergent lines. Git instead creates a new **merge
+commit**, `M`, whose distinctive feature is that it has
+**two parents**, `F` and `E`, tying the two lines back
+together:
+
+```text
+                        main
+                         |
+A -- B -- C -- F ------- M
+               \        /
+                D -- E -
+```
+
+It is called a three-way merge because Git computes the
+result by comparing three commits: the two branch tips (`F`
+and `E`) and their common ancestor (`C`). The merge commit
+records the combined state and closes the loop in the graph.
+
+You can see the whole shape at once with the graph option to
+`git log`:
+
+```bash
+$ git log --graph --oneline --all
+*   a7b8c9d (HEAD -> main) Merge branch 'feature'
+|\
+| * e4f5a6b (feature) Add subgroup analysis output
+| * d3e4f5a Add subgroup analysis
+* | f5a6b7c Round mean age to one decimal
+|/
+* 9b0c1d2 Add sex distribution table
+* 7e8f9a0 Add total count and mean age
+* a1b2c3d Add gitignore before any data enters repo
+```
+
+The `--graph` option draws the branch structure to the left,
+`--oneline` compresses each commit to one line, and `--all`
+shows every branch rather than only the current one. This
+command is the single most useful way to understand what
+your history looks like, and it is worth running often.
+
+### The feature-branch workflow
+
+Branches earn their keep through a simple discipline called
+the **feature-branch workflow**. The rule is: do not commit
+work-in-progress directly on `main`. Instead, for each
+self-contained piece of work, create a branch, do the work
+and commit it there, and merge the branch back into `main`
+only once the work is complete and correct.
+
+For a biostatistician a 'self-contained piece of work' is
+usually one analytical task: a sensitivity analysis, a new
+table, a requested subgroup, a change to the modelling
+approach. Each gets its own branch, named for what it does:
+
+```bash
+git switch -c subgroup-by-site
+git switch -c add-sensitivity-analysis
+git switch -c fix-age-eligibility
+```
+
+The reason this is safer than working on `main` directly is
+worth stating plainly. The `main` branch should always hold
+a version of the analysis that runs and is trustworthy, the
+version you would be willing to hand to a collaborator or
+use for a report. If you edit `main` directly, then halfway
+through a large change your analysis is in a broken,
+half-finished state, and `main` no longer means anything
+reliable. A branch quarantines the mess. While the feature
+branch is broken and half-written, `main` continues to point
+at the last known-good commit, untouched. Only when the
+feature is finished and working does it rejoin `main` in a
+single merge. This same discipline becomes the foundation of
+collaboration on Day 5, where each collaborator's branch is
+reviewed before it joins `main`.
+
+### Merge conflicts {#sec-merge-conflicts}
+
+Most merges succeed without your intervention. Git is adept
+at combining changes that touch different parts of a file,
+or different files entirely; it simply applies both sets of
+changes. A **merge conflict** arises only in one specific
+situation: when the two branches being merged have changed
+**the same lines of the same file** in different ways. Git
+cannot know which version you intended, so rather than guess,
+it stops and asks you to decide.
+
+Suppose `baseline.R` on both branches contains this line
+defining the analytic cohort:
+
+```r
+analytic <- subset(dat, age >= 18 & age <= 65)
+```
+
+On a branch named `raise-lower-age` you tightened the lower
+bound to 21:
+
+```r
+analytic <- subset(dat, age >= 21 & age <= 65)
+```
+
+Meanwhile on `main` a colleague widened the upper bound to
+75:
+
+```r
+analytic <- subset(dat, age >= 18 & age <= 75)
+```
+
+Both edits touch the same line. Merging `raise-lower-age`
+into `main` produces a conflict:
+
+```bash
+$ git merge raise-lower-age
+Auto-merging baseline.R
+CONFLICT (content): Merge conflict in baseline.R
+Automatic merge failed; fix conflicts and then commit the
+result.
+```
+
+Open `baseline.R` and you will find that Git has rewritten
+the conflicting region with **conflict markers**:
+
+```r
+<<<<<<< HEAD
+analytic <- subset(dat, age >= 18 & age <= 75)
+=======
+analytic <- subset(dat, age >= 21 & age <= 65)
+>>>>>>> raise-lower-age
+```
+
+Read the markers precisely. The block between `<<<<<<< HEAD`
+and `=======` is the version on your current branch, that
+is, `main`, since `HEAD` points at `main`. The block between
+`=======` and `>>>>>>> raise-lower-age` is the version from
+the branch you are merging in. Git has placed both in front
+of you and is asking which should survive, or how they
+should be combined.
+
+You resolve the conflict by **editing the file** so that it
+contains exactly the code you want, and **deleting all three
+marker lines**. Here both edits are correct and compatible:
+the intended cohort is ages 21 through 75. So you edit the
+region to read:
+
+```r
+analytic <- subset(dat, age >= 21 & age <= 75)
+```
+
+with no markers remaining. Then you stage the resolved file
+and commit, which completes the merge:
+
+```bash
+$ git add baseline.R
+$ git commit -m 'Merge raise-lower-age; combine age bounds'
+[main b8c9d0e] Merge raise-lower-age; combine age bounds
+```
+
+Two points deserve emphasis. First, resolving a conflict is
+an ordinary edit followed by an ordinary `git add`; there is
+no special 'resolve' command. Staging the file is how you
+tell Git 'this file is settled'. Second, you must actually
+read the code and choose the correct result. Git guarantees
+only that the conflict markers are gone; it cannot check that
+the surviving code is statistically correct. Resolving a
+conflict carelessly, by keeping one side at random, is a real
+way to introduce a silent analytical error.
+
+If a conflict appears and you would rather not deal with it
+now, back out of the merge entirely:
+
+```bash
+$ git merge --abort
+```
+
+This returns the repository to exactly the state it was in
+before you ran `git merge`, as though the merge had never
+been attempted. Nothing is lost, and you can try again later.
+
+::: {.callout-note icon=false collapse=true}
+## Check your understanding: what do the markers mean?
+
+During a merge you see `<<<<<<< HEAD` above one block of
+code and `>>>>>>> add-subgroup` below another, separated by
+`=======`. Which block is your current work, and what must
+you do before you can commit?
+
+The block just below `<<<<<<< HEAD` is the version on your
+current branch, the one `HEAD` points at. The block just
+above `>>>>>>> add-subgroup` is the version coming from the
+`add-subgroup` branch you are merging in. To finish, edit the
+file so it contains the code you actually want, which may be
+one side, the other, or a combination of both, and delete
+all three marker lines (`<<<<<<<`, `=======`, `>>>>>>>`).
+Then run `git add` on the file and `git commit`. Leaving even
+one marker line in the file is a common mistake; the markers
+are not valid R and will cause a syntax error if you try to
+run the script.
+:::
+
+## Worked example: a subgroup analysis on a feature branch
+
+We continue the `baseline-summary` repository from Days 1 and
+2. Move into it and confirm the starting state:
+
+```bash
+$ cd baseline-summary
+$ git switch main
+$ git log --oneline
+9b0c1d2 Add sex distribution table
+7e8f9a0 Add total count and mean age
+a1b2c3d Add gitignore before any data enters repo
+```
+
+You are asked to add an age-stratified subgroup analysis.
+This is a self-contained piece of work, so it belongs on its
+own branch rather than on `main`. Create and switch to one:
+
+```bash
+$ git switch -c subgroup-analysis
+Switched to a new branch 'subgroup-analysis'
+```
+
+Add the subgroup code to `baseline.R` and commit it on the
+feature branch:
+
+```bash
+$ cat >> baseline.R <<'EOF'
+dat$age_group <- ifelse(dat$age < 65, "under65", "65plus")
+age_group_n <- table(dat$age_group)
+EOF
+$ git add baseline.R
+$ git commit -m 'Add age-group stratification'
+[subgroup-analysis d3e4f5a] Add age-group stratification
+ 1 file changed, 2 insertions(+)
+```
+
+Extend it with a per-group mean age, and commit that as a
+second step on the same branch:
+
+```bash
+$ echo 'age_group_means <- tapply(dat$age, dat$age_group, mean)' >> baseline.R
+$ git commit -a -m 'Add per-group mean age'
+[subgroup-analysis e4f5a6b] Add per-group mean age
+ 1 file changed, 1 insertion(+)
+```
+
+The feature branch now has two commits that `main` does not.
+Switch back to `main` and confirm that the subgroup code is
+absent there, exactly as the lecture described:
+
+```bash
+$ git switch main
+Switched to branch 'main'
+$ tail -n 1 baseline.R
+sex_table <- table(dat$sex)
+```
+
+The last line of `baseline.R` on `main` is the sex table
+from Day 1; the subgroup lines are not present, because they
+live only on the feature branch. Now make a small,
+independent change on `main` itself, so that when we merge,
+both branches will have moved and the merge will be a genuine
+three-way merge. Round the mean age for reporting:
+
+```bash
+$ echo 'mean_age <- round(mean_age, 1)' >> baseline.R
+$ git commit -a -m 'Round mean age to one decimal'
+[main f5a6b7c] Round mean age to one decimal
+ 1 file changed, 1 insertion(+)
+```
+
+Both branches have now advanced since they diverged at
+`9b0c1d2`. Merge the feature branch into `main`:
+
+```bash
+$ git merge subgroup-analysis
+Merge made by the 'recursive' strategy.
+ baseline.R | 3 +++
+ 1 file changed, 3 insertions(+)
+```
+
+Because the two branches changed different lines of
+`baseline.R`, the change on `main` at the top of the file
+and the subgroup additions at the bottom, Git combined them
+automatically with no conflict, and recorded a merge commit.
+The message 'Merge made by the recursive strategy' confirms
+this was a three-way merge rather than a fast-forward.
+
+Inspect the resulting history:
+
+```bash
+$ git log --graph --oneline --all
+*   a7b8c9d (HEAD -> main) Merge branch 'subgroup-analysis'
+|\
+| * e4f5a6b (subgroup-analysis) Add per-group mean age
+| * d3e4f5a Add age-group stratification
+* | f5a6b7c Round mean age to one decimal
+|/
+* 9b0c1d2 Add sex distribution table
+* 7e8f9a0 Add total count and mean age
+* a1b2c3d Add gitignore before any data enters repo
+```
+
+The graph shows the story exactly: the two lines diverging
+at `9b0c1d2`, the rounding commit on one side and the two
+subgroup commits on the other, and the merge commit `a7b8c9d`
+tying them back together. The feature branch has done its
+job, so delete its label:
+
+```bash
+$ git branch -d subgroup-analysis
+Deleted branch subgroup-analysis (was e4f5a6b).
+```
+
+The subgroup commits remain in the history, reachable from
+`main` through the merge commit; only the redundant label is
+gone. Throughout this exercise `main` never held a broken,
+half-written analysis: the subgroup work was assembled in
+isolation and joined `main` only when complete. That is the
+entire point of the feature-branch workflow, and it is the
+rhythm every subsequent day assumes.
+
+## Homework
+
+Attempt each problem in your own terminal before checking the
+solution. Work in a scratch repository so that you can
+experiment freely; create one with `mkdir hw3 && cd hw3 &&
+git init` and make an initial commit to start from.
+
+1. **List and create.** In a fresh repository with at least
+   one commit, run `git branch` and note the single branch
+   and the asterisk. Create and switch to a branch named
+   `experiment` with one command. Run `git branch` again and
+   describe what changed.
+
+2. **Switching swaps files.** On `main`, create a file
+   `model.R` containing the single line `fit <- lm(y ~ x,
+   data = dat)` and commit it. Create a branch
+   `add-covariate`, and on it change the line to `fit <-
+   lm(y ~ x + age, data = dat)` and commit. Switch back to
+   `main` and open `model.R`. Which version do you see?
+   Switch to `add-covariate` and look again. Explain.
+
+3. **A fast-forward merge.** Starting from `main`, create a
+   branch `add-readme`, add a file `README.md` with one line
+   and commit it, then switch back to `main` and immediately
+   merge `add-readme`. Read Git's output. Does it say
+   'fast-forward'? Explain why no merge commit was created.
+
+4. **A three-way merge.** Reset to a scenario where both
+   branches move: on `main` create `analysis.R` with two
+   lines and commit. Branch to `feature-a`, append a line,
+   and commit. Switch to `main`, append a *different* line
+   (at a different position), and commit. Merge `feature-a`
+   into `main`. Did a conflict occur? Show the history with
+   `git log --graph --oneline --all` and identify the merge
+   commit.
+
+5. **Delete a branch safely.** After completing problem 4,
+   delete the `feature-a` branch with `git branch -d`. Does
+   Git allow it? Now create a branch `throwaway`, commit
+   something on it that you never merge, switch back to
+   `main`, and try `git branch -d throwaway`. What happens,
+   and why? What flag would force it, and what is the risk?
+
+6. **Create a conflict.** On `main`, create `threshold.R`
+   containing `alpha <- 0.05` and commit. Branch to
+   `strict-alpha` and change the line to `alpha <- 0.01`,
+   then commit. Switch to `main` and change the same line to
+   `alpha <- 0.025`, then commit. Merge `strict-alpha` into
+   `main`. Show the conflict markers Git inserts and identify
+   which block is `main` and which is `strict-alpha`.
+
+7. **Resolve the conflict.** Continue from problem 6. Decide
+   that the correct value is `alpha <- 0.01`, edit
+   `threshold.R` to that single line with no markers, and
+   complete the merge. Show the commands and confirm with
+   `git log --oneline` that a merge commit exists.
+
+8. **Abort a merge.** Recreate a conflict as in problem 6
+   (use fresh branches and a fresh conflicting line). This
+   time, instead of resolving it, run `git merge --abort`.
+   Run `git status` and open the file. What state is the
+   repository in? Explain what `--abort` undid.
+
+## Solutions
+
+**Problem 1.**
+
+```bash
+git branch
+#> * main
+git switch -c experiment
+#> Switched to a new branch 'experiment'
+git branch
+#>   main
+#> * experiment
+```
+
+Before, one branch `main` existed and the asterisk marked it
+as current. After, a second branch `experiment` exists and
+the asterisk has moved to it, because `git switch -c` both
+created the branch and moved `HEAD` onto it. Both branches
+still point at the same commit; only the current branch has
+changed.
+
+**Problem 2.**
+
+```bash
+echo 'fit <- lm(y ~ x, data = dat)' > model.R
+git add model.R
+git commit -m 'Add base model'
+
+git switch -c add-covariate
+echo 'fit <- lm(y ~ x + age, data = dat)' > model.R
+git commit -a -m 'Add age covariate'
+
+git switch main
+cat model.R
+#> fit <- lm(y ~ x, data = dat)
+git switch add-covariate
+cat model.R
+#> fit <- lm(y ~ x + age, data = dat)
+```
+
+On `main` you see the base model without `age`; on
+`add-covariate` you see the model with `age`. Switching
+branches rewrites the working directory to match the commit
+the branch points at, so the on-disk contents of `model.R`
+change as you switch. Neither version is lost; each is
+preserved in a commit on its respective branch.
+
+**Problem 3.**
+
+```bash
+git switch -c add-readme
+echo '# Analysis project' > README.md
+git add README.md
+git commit -m 'Add README'
+
+git switch main
+git merge add-readme
+#> Updating 9b0c1d2..c1d2e3f
+#> Fast-forward
+#>  README.md | 1 +
+#>  1 file changed, 1 insertion(+)
+```
+
+Git reports 'Fast-forward'. No merge commit was created
+because `main` had not moved since `add-readme` was created:
+`main` still pointed at the commit that is the direct parent
+of the new commit. Git therefore combined the work simply by
+sliding the `main` label forward to the branch's commit. A
+straight-line history needs no merge commit.
+
+**Problem 4.**
+
+```bash
+echo 'dat <- read.csv("data.csv")' > analysis.R
+echo 'n <- nrow(dat)' >> analysis.R
+git add analysis.R
+git commit -m 'Add data load and count'
+
+git switch -c feature-a
+echo 'mean_x <- mean(dat$x)' >> analysis.R
+git commit -a -m 'Add mean of x'
+
+git switch main
+cat > analysis.R <<'EOF'
+dat <- read.csv("data.csv")
+summary(dat)
+n <- nrow(dat)
+EOF
+git commit -a -m 'Add summary call'
+
+git merge feature-a
+#> Merge made by the 'recursive' strategy.
+git log --graph --oneline --all
+#> *   9f0a1b2 (HEAD -> main) Merge branch 'feature-a'
+#> |\
+#> | * 7d8e9f0 (feature-a) Add mean of x
+#> * | 6c7d8e9 Add summary call
+#> |/
+#> * 5b6c7d8 Add data load and count
+```
+
+No conflict occurred, because the two branches changed
+different lines of `analysis.R`: `feature-a` appended a line
+at the end, while `main` inserted a `summary(dat)` line in
+the middle. The merge commit `9f0a1b2` is the node with two
+parents, shown by the `|\` fork in the graph, joining the
+`feature-a` line and the `main` line back together.
+
+**Problem 5.**
+
+```bash
+git branch -d feature-a
+#> Deleted branch feature-a (was 7d8e9f0).
+
+git switch -c throwaway
+echo 'x <- 1' > scratch.R
+git add scratch.R
+git commit -m 'Scratch work'
+git switch main
+git branch -d throwaway
+#> error: the branch 'throwaway' is not fully merged.
+```
+
+Deleting `feature-a` is allowed because its commits were
+merged into `main` in problem 4, so they remain reachable.
+Deleting `throwaway` is refused because its commit was never
+merged; deleting the label would strand that commit with
+nothing pointing at it. The `-D` flag (capital) forces the
+deletion, but the risk is exactly that stranding: the unique
+work on the branch becomes very hard to recover. Use `-D`
+only when you are certain the branch holds nothing you want.
+
+**Problem 6.**
+
+```bash
+echo 'alpha <- 0.05' > threshold.R
+git add threshold.R
+git commit -m 'Set alpha to 0.05'
+
+git switch -c strict-alpha
+echo 'alpha <- 0.01' > threshold.R
+git commit -a -m 'Tighten alpha to 0.01'
+
+git switch main
+echo 'alpha <- 0.025' > threshold.R
+git commit -a -m 'Set alpha to 0.025'
+
+git merge strict-alpha
+#> CONFLICT (content): Merge conflict in threshold.R
+#> Automatic merge failed; fix conflicts and then commit
+```
+
+Opening `threshold.R` shows:
+
+```r
+<<<<<<< HEAD
+alpha <- 0.025
+=======
+alpha <- 0.01
+>>>>>>> strict-alpha
+```
+
+The block below `<<<<<<< HEAD` (`alpha <- 0.025`) is the
+version on `main`, the current branch. The block above
+`>>>>>>> strict-alpha` (`alpha <- 0.01`) is the version from
+the branch being merged in. Both branches changed the same
+line, which is what forced the conflict.
+
+**Problem 7.**
+
+```bash
+echo 'alpha <- 0.01' > threshold.R   # edited: no markers left
+git add threshold.R
+git commit -m 'Merge strict-alpha; adopt alpha = 0.01'
+git log --oneline
+#> a1b2c3d Merge strict-alpha; adopt alpha = 0.01
+#> ...
+```
+
+Editing the file down to the single intended line, with all
+three marker lines removed, resolves the conflict. `git add`
+stages the resolved file, which is how you signal to Git that
+the conflict is settled, and `git commit` records the merge
+commit. The merge commit appears at the top of
+`git log --oneline`, confirming the merge completed.
+
+**Problem 8.**
+
+```bash
+echo 'seed <- 100' > config.R
+git add config.R
+git commit -m 'Set seed to 100'
+
+git switch -c other-seed
+echo 'seed <- 200' > config.R
+git commit -a -m 'Change seed to 200'
+
+git switch main
+echo 'seed <- 300' > config.R
+git commit -a -m 'Change seed to 300'
+
+git merge other-seed
+#> CONFLICT (content): Merge conflict in config.R
+git merge --abort
+git status
+#> On branch main
+#> nothing to commit, working tree clean
+cat config.R
+#> seed <- 300
+```
+
+After `git merge --abort`, `git status` reports a clean
+working tree and `config.R` holds `seed <- 300`, the version
+on `main` before the merge. The command undid the entire
+merge attempt, removed the conflict markers, and restored the
+repository to precisely its pre-merge state, as though `git
+merge` had never been run. This is the safe escape hatch when
+a conflict appears at an inconvenient moment.
+
+## What's next
+
+Everything so far has been local: the repository, its
+branches, and its history live only on your own machine. Day
+4 connects your work to the wider world. You will learn what
+GitHub is, authenticate with the `gh` command-line tool,
+create a remote repository, and use `git push`, `git pull`,
+`git fetch`, and `git clone` to synchronise your local
+history with a copy hosted online. The branching and merging
+skills from today carry over directly: a remote is, in
+large part, just another place branches live. Keep the
+`baseline-summary` repository; Day 4 publishes it.
