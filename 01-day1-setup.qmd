@@ -476,7 +476,7 @@ produce a baseline summary. We place the work under version
 control from the very first step, which is the habit to
 build.
 
-Create and initialise the project:
+Create and initialize the project:
 
 ```bash
 $ mkdir baseline-summary
@@ -553,7 +553,7 @@ you can experiment freely.
    all set. If any is missing, set it.
 
 2. **A repository from nothing.** Create a new directory
-   `hw1-repo`, initialise it as a Git repository, and
+   `hw1-repo`, initialize it as a Git repository, and
    confirm with `git status` that you are on branch `main`
    with no commits yet. What does the `.git` directory
    contain? (List it with `ls -a` and `ls .git`.)

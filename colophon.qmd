@@ -13,13 +13,13 @@ from the `rgt47/git-bootcamp` repository on every push to
 `main`. The deployment recipe is in `HOSTING.md`.
 
 The cover is generated procedurally by
-`images/build-cover.R` from a watercolour gradient anchored
+`images/build-cover.R` from a watercolor gradient anchored
 on `#8f3a1a` (the volume's brand rust) and overlaid with
 Avenir typography. Re-running the script regenerates the
 cover; the procedural approach makes the cover reproducible
 and editable in version control rather than dependent on a
 one-shot image-generation step. That the cover of a
 version-control textbook is itself a versioned, scripted
-artefact is deliberate.
+artifact is deliberate.
 
 Last rendered: see the build timestamp on the homepage.

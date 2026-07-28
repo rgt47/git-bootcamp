@@ -1,6 +1,6 @@
 # Conventions {.unnumbered}
 
-This page summarises the visual conventions used throughout
+This page summarizes the visual conventions used throughout
 the book.
 
 ## Commands and output
@@ -66,7 +66,7 @@ operation that discards work irrecoverably.
 ## Diagrams of history
 
 Commit history is drawn as a left-to-right graph, with each
-node a commit labelled by a short hash and time flowing
+node a commit labeled by a short hash and time flowing
 rightward. Branch and tag names are pointers attached to
 commits:
 
@@ -104,7 +104,7 @@ template:
    run in your own terminal as you read.
 3. **Worked example.** A small but realistic biostatistical
    scenario that uses the day's content end to end.
-4. **Homework.** Problems organised from easier to harder.
+4. **Homework.** Problems organized from easier to harder.
 5. **Solutions.** Worked solutions to all homework
    problems. Read only after attempting the problem.
 

@@ -11,7 +11,7 @@ modules at Cornell (INFO 5940), Carnegie Mellon
 them.
 
 Cover artwork generated procedurally by the R script at
-`images/build-cover.R`. Watercolour palette: deep rust
+`images/build-cover.R`. Watercolor palette: deep rust
 through terracotta and amber to pale sand, anchored on a
 brand rust `#8f3a1a` chosen to echo the Git project's
 signature orange. Typography: Avenir family (Apple system

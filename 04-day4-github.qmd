@@ -41,11 +41,11 @@ important to be precise about the relationship. GitHub does
 not replace Git and adds no new version-control concepts.
 The commits, branches, and history are exactly the ones Git
 already made on your machine; GitHub simply holds a
-synchronised copy and layers collaboration tools (issues,
+synchronized copy and layers collaboration tools (issues,
 pull requests, code review) on top.
 
 GitHub is one host among several. GitLab and Bitbucket offer
-the same core service, and an organisation can run its own
+the same core service, and an organization can run its own
 private server. The Git commands you learned this week work
 identically against any of them. This book uses GitHub
 because it is the de facto standard in academic
@@ -76,7 +76,7 @@ A **remote** is a named reference to another copy of your
 repository, almost always one hosted elsewhere, such as on
 GitHub. It is a bookmark: a short name paired with a URL,
 so that instead of typing the full address every time you
-synchronise, you refer to it by name. By universal
+synchronize, you refer to it by name. By universal
 convention the primary remote is named `origin`.
 
 ```text
@@ -93,7 +93,7 @@ remote down to your local repository. The remote is just
 another repository; the same objects (commits, trees, blobs)
 move between the two. Everything in this chapter is
 machinery for keeping a local repository and its `origin`
-remote synchronised.
+remote synchronized.
 
 ### Installing the GitHub CLI
 
@@ -334,7 +334,7 @@ correct to make several commits and push them together.
 
 ### Getting changes: fetch and pull
 
-Synchronisation runs both ways. When the GitHub copy has
+Synchronization runs both ways. When the GitHub copy has
 commits your local repository lacks, because a collaborator
 pushed, or because you pushed from another computer, you
 bring them down. There are two commands, and the difference
@@ -463,7 +463,7 @@ $ git push
 
 Because a README is an ordinary tracked file, it is
 versioned like any other; edits to it are commits, and it
-stays synchronised through push and pull. On GitHub, the
+stays synchronized through push and pull. On GitHub, the
 rendered README now heads the repository page.
 
 ### Browsing a repository from the terminal

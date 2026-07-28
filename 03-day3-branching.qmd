@@ -16,7 +16,7 @@ By the end of this day you should be able to:
   fast-forward merge from a three-way merge.
 - Adopt the feature-branch workflow and explain why it keeps
   `main` in a known-good state.
-- Recognise, understand, and resolve a merge conflict, and
+- Recognize, understand, and resolve a merge conflict, and
   back out of one with `git merge --abort`.
 
 ## Lecture
@@ -125,7 +125,7 @@ will have seen `git checkout` used for this: `git checkout
 That command still works and does exactly the same thing.
 The `git switch` command was introduced in 2019 to give
 branch switching its own dedicated, less overloaded verb.
-This book teaches `git switch`, but you should recognise
+This book teaches `git switch`, but you should recognize
 `git checkout` when you meet it in the wild.
 :::
 
@@ -329,7 +329,7 @@ only once the work is complete and correct.
 
 For a biostatistician a 'self-contained piece of work' is
 usually one analytical task: a sensitivity analysis, a new
-table, a requested subgroup, a change to the modelling
+table, a requested subgroup, a change to the modeling
 approach. Each gets its own branch, named for what it does:
 
 ```bash
@@ -888,7 +888,7 @@ branches, and its history live only on your own machine. Day
 4 connects your work to the wider world. You will learn what
 GitHub is, authenticate with the `gh` command-line tool,
 create a remote repository, and use `git push`, `git pull`,
-`git fetch`, and `git clone` to synchronise your local
+`git fetch`, and `git clone` to synchronize your local
 history with a copy hosted online. The branching and merging
 skills from today carry over directly: a remote is, in
 large part, just another place branches live. Keep the

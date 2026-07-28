@@ -3,11 +3,11 @@
 This is the online version of **Git and GitHub for
 Biostatistics: A One-Week Boot Camp** by The rgtlab
 Curriculum Project, a short preparatory course for incoming
-graduate students in biostatistics and adjacent programmes.
+graduate students in biostatistics and adjacent programs.
 
 The book covers everything an entering masters-level
 biostatistician needs to place their analytical work under
-version control on day one of the academic programme:
+version control on day one of the academic program:
 installing and configuring Git, recording a project's
 history in commits, navigating and undoing that history,
 branching and merging, publishing to GitHub, and
@@ -15,7 +15,7 @@ collaborating through pull requests. It is designed for
 **five consecutive days** of work: one hour of lecture
 content each day, two hours of homework, no examinations.
 
-The organising principle is that version control is a
+The organizing principle is that version control is a
 research-integrity tool, not a software-engineering
 nicety. A biostatistician who cannot say which version of
 a script produced a published table has a reproducibility
@@ -28,19 +28,19 @@ The boot camp is a preparatory companion to a five-volume
 graduate sequence:
 
 - **R for Biostatistics: A One-Week Boot Camp**
-  (<https://r-bootcamp.rgtlab.org>) — the parallel
+  (<https://r-bootcamp.rgtlab.org>), the parallel
   preparatory volume for R.
-- [*Biostatistics Practicum*](https://rgtlab.org/practicum)
-  — workflow infrastructure (Git in depth, Docker, renv,
+- [*Biostatistics Practicum*](https://rgtlab.org/practicum),
+  workflow infrastructure (Git in depth, Docker, renv,
   Quarto, CDISC) that builds directly on this boot camp.
-- [*Statistical Computing in the Age of AI*](https://scai.rgtlab.org)
-  — introductory methods (linear models, GLM, mixed
+- [*Statistical Computing in the Age of AI*](https://scai.rgtlab.org),
+  introductory methods (linear models, GLM, mixed
   models, survival, Bayesian, bootstrap, simulation).
-- [*Advanced Statistical Computing in the Age of AI*](https://scai-advanced.rgtlab.org)
-  — advanced computing (numerical stability, MCMC, HPC,
+- [*Advanced Statistical Computing in the Age of AI*](https://scai-advanced.rgtlab.org),
+  advanced computing (numerical stability, MCMC, HPC,
   high-dimensional methods, ML, software engineering).
-- [*Applied Generative AI for Health Sciences Research*](https://applied-genai.rgtlab.org)
-  — capability classes, RAG, agents, evaluation,
+- [*Applied Generative AI for Health Sciences Research*](https://applied-genai.rgtlab.org),
+  capability classes, RAG, agents, evaluation,
   regulation, deployment.
 
 Together with *R for Biostatistics*, this volume forms the

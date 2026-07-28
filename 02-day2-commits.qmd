@@ -343,7 +343,7 @@ handling of missingness in the statistical analysis plan.
 ```
 
 A reader, including you in six months, can now reconstruct
-not just what changed but the analytical judgement behind
+not just what changed but the analytical judgment behind
 it. This is what makes a commit history function as a lab
 notebook rather than a mechanical changelog.
 
@@ -466,7 +466,7 @@ Git computes the inverse of commit `9b0c1d2` (every line it
 added is removed, every line it removed is added), applies
 that inverse as a new commit, and opens the editor for its
 message. The original commit remains in the history; the
-revert sits after it, cancelling it. Because `git revert`
+revert sits after it, canceling it. Because `git revert`
 only adds to history and never rewrites it, it is safe on
 shared branches, and it is the preferred way to undo
 anything others may have seen.
@@ -518,7 +518,7 @@ reset, whereas an uncommitted one is not.
 :::
 
 **What is and is not recoverable.** The reassuring
-generalisation is that Git rarely loses committed work. A
+generalization is that Git rarely loses committed work. A
 commit that seems to have vanished after an amend or a reset
 usually still exists in Git's internal records and can be
 retrieved; the tools for that recovery (notably the reflog)
@@ -535,7 +535,7 @@ mistake.
 
 You pushed a commit to GitHub yesterday (Day 4 will teach
 pushing; assume for now it means others can see it). Today
-you realise that commit introduced a coding error. Should
+you realize that commit introduced a coding error. Should
 you use `git reset` to remove it or `git revert` to undo it?
 
 Use `git revert`. Because the commit has been shared,
