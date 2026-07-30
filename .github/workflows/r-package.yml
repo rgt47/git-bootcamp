@@ -18,6 +18,9 @@ on:
 
 jobs:
   detect:
+    # Only check when the compendium ships R source. A prose book has an empty
+    # R/, so there is no package to check; both jobs skip (needs propagation).
+    if: ${{ hashFiles('R/**/*.R') != '' }}
     runs-on: ubuntu-latest
     outputs:
       nix: ${{ steps.d.outputs.nix }}
