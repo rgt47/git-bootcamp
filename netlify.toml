@@ -1,6 +1,6 @@
 [build]
-  publish = "analysis/book/_book"
-  command = "quarto render analysis/book --to html"
+  publish = "analysis/report/_book"
+  command = "quarto render analysis/report --to html"
 
 [build.environment]
   QUARTO_VERSION = "1.5.57"
