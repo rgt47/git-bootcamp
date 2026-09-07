@@ -36,27 +36,27 @@ project/
 ```
 
 The folder is a manual, error-prone version-control system.
-It records some history (there are several versions) but it
-records it badly: the ordering is ambiguous, the reason for
-each version is lost, and nothing connects a given file to
-the results it produced. When a reviewer asks 'which script
-made Table 2?', the honest answer is often 'I am not sure'.
+It records some history, since there are several versions,
+but it records it badly. The ordering is ambiguous, the
+reason for each version is lost, and nothing connects a given
+file to the results it produced. When a reviewer asks 'which
+script made Table 2?', the honest answer is often 'I am not
+sure'.
 
 A **version-control system** (VCS) replaces this with a
 disciplined record. It keeps one file, `analysis.R`, and
 stores every historical version of it internally, each
-stamped with an author, a time, and a message explaining
-the change. You can view any past version, compare any two,
-and recover any of them exactly. The folder above collapses
-to:
+stamped with an author, a time, and a message explaining the
+change. You can view any past version, compare any two, and
+recover any of them exactly. The folder above collapses to:
 
 ```text
 project/
   analysis.R      # plus a complete, queryable history
 ```
 
-**Git** is the version-control system this book teaches. It
-is the de facto standard in data science, statistics, and
+**Git** is the version-control system we teach in this book.
+It is the de facto standard in data science, statistics, and
 software. For a biostatistician the payoff is specific and
 serious: version control is what makes an analysis
 reproducible over time. If a manuscript's results were
@@ -208,8 +208,8 @@ later command manipulates the boundaries between them.
 The staging area is what distinguishes Git from a simple
 'save a version' button. It lets you commit some of your
 changes and not others, so that each commit is a single
-coherent unit rather than a jumble of unrelated edits. Day
-2 uses this deliberately.
+coherent unit rather than a jumble of unrelated edits. Day 2
+takes up this feature deliberately.
 
 ### Creating your first repository
 
@@ -534,12 +534,12 @@ On branch main
 nothing to commit, working tree clean
 ```
 
-In five commits' worth of habit you have built something
-the four-file folder never could: a data file that was
-never at risk of being committed, an analysis whose every
-step is dated and explained, and a clean working tree you
-can walk away from. This is the baseline rhythm of every
-subsequent day.
+In five commits' worth of habit you have built something the
+four-file folder never could. That is, a data file that was
+never at risk of being committed, an analysis whose every step
+is dated and explained, and a clean working tree you can walk
+away from. This is the baseline rhythm of every subsequent
+day.
 
 ## Homework
 
@@ -636,11 +636,11 @@ git commit -m 'Add protocol version line'
 echo 'Primary endpoint: 12-week change in HbA1c' >> notes.txt
 git commit -a -m 'Record primary endpoint'
 
-echo 'Randomisation: 1:1, stratified by site' >> notes.txt
-git commit -a -m 'Record randomisation scheme'
+echo 'Randomization: 1:1, stratified by site' >> notes.txt
+git commit -a -m 'Record randomization scheme'
 
 git log --oneline
-#> c3d4e5f Record randomisation scheme
+#> c3d4e5f Record randomization scheme
 #> b2c3d4e Record primary endpoint
 #> a1b2c3d Add protocol version line
 ```

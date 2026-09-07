@@ -30,13 +30,13 @@ By the end of this day you should be able to:
 Two biostatisticians are assigned to the same trial. One
 writes the baseline table, the other writes the efficacy
 analysis, and both edit `baseline.R`. Worked by email, the
-sequence is familiar and doomed. The first analyst emails
-`baseline.R`; the second edits it and emails it back; the
-first, who has meanwhile made her own edits, now holds two
-divergent files with the same name and no way to combine
-them except by hand. Whoever saves last wins, and the
-other's work is silently lost. This is the third failure
-named in the preface, and it is a version-control failure.
+sequence is familiar, and it is doomed. The first analyst
+emails `baseline.R`. The second edits it and emails it back.
+The first, who has meanwhile made her own edits, now holds
+two divergent files with the same name and no way to combine
+them except by hand. Whoever saves last wins, and the other's
+work is silently lost. This is the third failure named in the
+preface, and it is a version-control failure.
 
 A shared Git remote dissolves the problem. Both analysts
 clone the same GitHub repository. Each records commits
@@ -996,7 +996,7 @@ What remains is the infrastructure that surrounds this
 everyday core, and it is the subject of the companion
 *Biostatistics Practicum* volume. There you will meet Git's
 internals and the reflog, interactive rebasing and history
-rewriting, dependency-pinned and containerised
+rewriting, dependency-pinned and containerized
 reproducibility with `renv` in depth and Docker, Quarto
 pipelines that render an analysis from data to manuscript in
 one command, continuous integration with GitHub Actions, and

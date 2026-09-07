@@ -23,10 +23,10 @@ By the end of this day you should be able to:
 
 ### What a branch is
 
-The word 'branch' invites a misleading picture: a copy of
-your project folder that you edit separately and later paste
-back. That is not what a branch is, and holding the wrong
-picture makes every later command confusing.
+The word 'branch' invites a misleading picture, that of a
+copy of your project folder that you edit separately and later
+paste back. That is not what a branch is, and holding the
+wrong picture makes every later command confusing.
 
 A **branch is a pointer to a commit**. Nothing more. Recall
 from Day 1 that each commit is a snapshot with a
@@ -883,13 +883,13 @@ a conflict appears at an inconvenient moment.
 
 ## What's next
 
-Everything so far has been local: the repository, its
+Everything so far has been local. The repository, its
 branches, and its history live only on your own machine. Day
 4 connects your work to the wider world. You will learn what
 GitHub is, authenticate with the `gh` command-line tool,
 create a remote repository, and use `git push`, `git pull`,
-`git fetch`, and `git clone` to synchronize your local
-history with a copy hosted online. The branching and merging
-skills from today carry over directly: a remote is, in
-large part, just another place branches live. Keep the
-`baseline-summary` repository; Day 4 publishes it.
+`git fetch`, and `git clone` to synchronize your local history
+with a copy hosted online. The branching and merging skills
+from today carry over directly. That is, a remote is, in large
+part, just another place branches live. Keep the
+`baseline-summary` repository, since Day 4 publishes it.

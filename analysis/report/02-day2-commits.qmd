@@ -22,10 +22,11 @@ By the end of this day you should be able to:
 Day 1 built the add-commit habit: edit, stage, commit,
 repeat. Day 2 turns to the questions that the habit makes
 possible. What exactly changed between two versions? What
-did a past commit contain? How do I write a commit worth
-committing? And, above all, how do I undo a mistake without
+did a past commit contain? How do we write a commit worth
+committing? And, above all, how do we undo a mistake without
 losing work? The last question is the heart of the day, and
-the reason version control repays the effort of learning it.
+it is the reason version control repays the effort of
+learning it.
 
 ### Comparing versions with git diff
 
@@ -949,9 +950,9 @@ edits.
 You can now read history, compare any two versions, and undo
 almost any mistake. So far, however, the history has been a
 single straight line of commits. Day 3 introduces
-**branching**, the mechanism that lets you develop a change
-in isolation, without disturbing a working analysis, and then
-**merge** it back. Branching is what turns Git from a
-personal undo system into a tool for parallel work and, from
-Day 4 onward, collaboration. Keep the `baseline-summary`
-repository; Day 3 branches from it.
+**branching**, the mechanism that lets you develop a change in
+isolation, without disturbing a working analysis, and then
+**merge** it back. Branching is what turns Git from a personal
+undo system into a tool for parallel work, and, from Day 4
+onward, into a tool for collaboration. Keep the
+`baseline-summary` repository, since Day 3 branches from it.

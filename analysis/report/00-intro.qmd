@@ -47,7 +47,7 @@ homework solutions.
 
 ## A note on the two tools
 
-The book teaches two related but distinct tools:
+We teach two related but distinct tools:
 
 - **Git** is the version-control system. It runs on your
   own machine and records the history of your files. Git is
@@ -78,9 +78,8 @@ the [Conventions](conventions.qmd) page. In brief:
 ## Companion volumes
 
 This boot camp is the version-control half of a two-part
-preparation; the R half is *R for Biostatistics*. After
-both, the reader may continue with the four follow-on
-volumes:
+preparation. The R half is *R for Biostatistics*. After both,
+the reader may continue with the four follow-on volumes:
 
 - *Biostatistics Practicum*
   (<https://rgtlab.org/practicum>)

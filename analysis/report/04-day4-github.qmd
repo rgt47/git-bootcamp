@@ -30,7 +30,7 @@ Days 1 through 3 used Git entirely offline. Every commit you
 made lives in the `.git` directory inside your project
 folder, on your own machine, and nowhere else. That is a
 complete version-control system, but it has two limitations.
-If your laptop is lost, so is your work. And no collaborator
+If your laptop is lost, so is your work, and no collaborator
 can see the history, because it exists only on your disk.
 
 **GitHub** removes both limitations. It is a website that
@@ -952,6 +952,6 @@ contribute to one repository without overwriting each other,
 opening and reviewing pull requests with `gh pr`, and
 resolving conflicts that arise when two contributors change
 the same lines remotely. You will also see Git through the
-RStudio IDE and revisit `.gitignore` for R projects, `renv`,
-and data. Keep the `baseline-summary` repository you
-published today; Day 5 collaborates on it.
+RStudio IDE, and revisit `.gitignore` for R projects, `renv`,
+and data. Keep the `baseline-summary` repository you published
+today, since Day 5 collaborates on it.
