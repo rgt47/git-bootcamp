@@ -59,9 +59,18 @@ jobs:
           Rscript -e "install.packages('renv', repos = 'https://cloud.r-project.org')"
           Rscript -e "renv::restore(prompt = FALSE)"
 
+      # TeX for the PDF edition; Quarto installs any missing LaTeX
+      # packages on demand during the render.
+      - name: Install TinyTeX (host)
+        if: steps.mode.outputs.backend == 'host'
+        run: quarto install tinytex --no-prompt
+
+      # One render for all formats: separate --to html and --to pdf
+      # runs each clear _book, and Quarto adds the sidebar 'Download
+      # PDF' link only when it builds the PDF in the same run.
       - name: Render book (host)
         if: steps.mode.outputs.backend == 'host'
-        run: quarto render analysis/report --to html
+        run: quarto render analysis/report
 
       # --- Container backend: build the project image and render inside it ---
       - name: Set up Buildx
